@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Google API Loading</title>
+</head>
+<body>
+    <h1>Google API Debug</h1>
+    <div id="status">Checking API loading...</div>
+    <div id="errors"></div>
+    
+    <script>
+        const statusDiv = document.getElementById('status');
+        const errorsDiv = document.getElementById('errors');
+        
+        function log(message, isError = false) {
+            console.log(message);
+            const div = document.createElement('div');
+            div.textContent = new Date().toLocaleTimeString() + ': ' + message;
+            if (isError) div.style.color = 'red';
+            (isError ? errorsDiv : statusDiv).appendChild(div);
+        }
+        
+        // Check if scripts load
+        window.addEventListener('load', () => {
+            log('Page loaded');
+            
+            setTimeout(() => {
+                log('Checking gapi...');
+                if (typeof gapi !== 'undefined') {
+                    log('✓ gapi loaded successfully');
+                } else {
+                    log('✗ gapi not loaded', true);
+                }
+                
+                log('Checking google.accounts...');
+                if (typeof google !== 'undefined' && google.accounts) {
+                    log('✓ google.accounts loaded successfully');
+                } else {
+                    log('✗ google.accounts not loaded', true);
+                }
+            }, 2000);
+        });
+        
+        window.addEventListener('error', (e) => {
+            log('Script error: ' + e.message + ' at ' + e.filename + ':' + e.lineno, true);
+        });
+    </script>
+    
+    <script src="https://accounts.google.com/gsi/client" async defer onload="log('GSI client loaded')" onerror="log('GSI client failed to load', true)"></script>
+    <script src="https://apis.google.com/js/api.js" async defer onload="log('GAPI loaded')" onerror="log('GAPI failed to load', true)"></script>
+</body>
+</html>

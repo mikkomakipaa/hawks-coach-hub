@@ -1,0 +1,33 @@
+{
+  "name": "hawks-coach-hub",
+  "version": "1.0.0",
+  "description": "Professional web application for Hawks Helsinki coaches to access training resources from Google Drive",
+  "main": "index.html",
+  "scripts": {
+    "start": "python3 -m http.server 8000",
+    "dev": "python3 -m http.server 8000",
+    "build": "echo 'No build step required for static site'",
+    "deploy": "echo 'Deploy to GitHub Pages, Netlify, or Vercel'"
+  },
+  "keywords": [
+    "floorball",
+    "coaching",
+    "hawks-helsinki",
+    "google-drive",
+    "training-resources",
+    "sports"
+  ],
+  "author": "Hawks Helsinki",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mikkomakipaa/hawks-coach-hub.git"
+  },
+  "homepage": "https://mikkomakipaa.github.io/hawks-coach-hub",
+  "bugs": {
+    "url": "https://github.com/mikkomakipaa/hawks-coach-hub/issues"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}
