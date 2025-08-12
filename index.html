@@ -3,8 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Hawks Helsinki Coach Hub - Access training resources, drill instructions, and tactical materials from Google Drive">
+    <meta name="keywords" content="floorball, coaching, hawks helsinki, training, drills, tactics">
+    <meta name="author" content="Hawks Helsinki">
     <title>Hawks Helsinki - Coach Hub</title>
     <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/png" href="hawks.png">
 </head>
 <body>
     <header>
@@ -22,7 +26,7 @@
             </div>
             <div class="auth-section">
                 <div id="authorize_div" style="display: none;">
-                    <button id="authorize_button" class="auth-btn">
+                    <button id="authorize_button" class="auth-btn" aria-label="Sign in to Google Drive">
                         Sign In
                     </button>
                 </div>
@@ -36,19 +40,21 @@
     </header>
 
     <main>
-        <div class="status-card minimal" id="status">
-            <div class="status-content minimal">
-                <span>Loading...</span>
+        <div class="search-status-container">
+            <div class="search-section">
+                <div class="search-wrapper">
+                    <label for="searchInput" class="sr-only">Search training resources</label>
+                    <input type="text" id="searchInput" placeholder="Search drills, tactics, training plans..." aria-label="Search training resources">
+                </div>
+                <button id="refreshButton" class="refresh-btn" aria-label="Refresh file list">
+                    Refresh
+                </button>
             </div>
-        </div>
-
-        <div class="search-container">
-            <div class="search-wrapper">
-                <input type="text" id="searchInput" placeholder="Search drills, tactics, training plans...">
+            <div class="status-section">
+                <div class="status-content">
+                    <span id="statusText">Loading...</span>
+                </div>
             </div>
-            <button id="refreshButton" class="refresh-btn">
-                Refresh
-            </button>
         </div>
 
         <div class="content-grid">
@@ -101,6 +107,6 @@
 
     <script src="https://apis.google.com/js/api.js" async defer onload="window.gapiLoaded = true"></script>
     <script src="https://accounts.google.com/gsi/client" async defer onload="window.gisLoaded = true"></script>
-    <script src="script.js"></script>
+    <script src="script.js" defer></script>
 </body>
 </html>

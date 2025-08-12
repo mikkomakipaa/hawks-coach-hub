@@ -1,5 +1,6 @@
-// Configuration - You'll need to replace these with your actual values
-const CLIENT_ID = '1065457583274-6k0r5kfrvrelg1ufr2887814j33ga6va.apps.googleusercontent.com'
+// Configuration - Replace with your actual values
+// WARNING: These are public credentials - ensure proper restrictions in Google Cloud Console
+const CLIENT_ID = '1065457583274-6k0r5kfrvrelg1ufr2887814j33ga6va.apps.googleusercontent.com';
 const API_KEY = 'AIzaSyA1sQ8pUAKbsE8gwZfG-9Z-lwRLWO9GXak';
 const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest';
 const SCOPES = 'https://www.googleapis.com/auth/drive.metadata.readonly';
@@ -17,7 +18,8 @@ const authorizeDiv = document.getElementById('authorize_div');
 const signoutDiv = document.getElementById('signout_div');
 const authorizeButton = document.getElementById('authorize_button');
 const signoutButton = document.getElementById('signout_button');
-const statusDiv = document.getElementById('status');
+const statusDiv = document.querySelector('.status-content');
+const statusText = document.getElementById('statusText');
 const searchInput = document.getElementById('searchInput');
 const refreshButton = document.getElementById('refreshButton');
 const allFilesList = document.getElementById('allFilesList');
@@ -89,28 +91,63 @@ async function initializeGoogleAPIs() {
     try {
         updateStatus('Initializing Google Drive API...', 'loading');
         
-        // Initialize GAPI client
+        // Initialize GAPI client with more robust error handling
         await new Promise((resolve, reject) => {
+            if (typeof gapi === 'undefined') {
+                reject(new Error('Google API library not loaded'));
+                return;
+            }
+            
             gapi.load('client', {
-                callback: resolve,
-                onerror: reject
+                callback: () => {
+                    console.log('GAPI client loaded successfully');
+                    resolve();
+                },
+                onerror: (error) => {
+                    console.error('GAPI client load error:', error);
+                    reject(new Error('Failed to load GAPI client'));
+                }
             });
         });
         
-        await gapi.client.init({
-            apiKey: API_KEY,
-            discoveryDocs: [DISCOVERY_DOC],
-        });
+        // Initialize the client with better error handling
+        console.log('Initializing GAPI client with API key...');
         
+        // Try with discovery docs first, fallback to basic init
+        try {
+            await gapi.client.init({
+                apiKey: API_KEY,
+                discoveryDocs: [DISCOVERY_DOC],
+            });
+            console.log('GAPI client initialized with discovery docs');
+        } catch (discoveryError) {
+            console.warn('Discovery docs failed, trying basic initialization:', discoveryError);
+            
+            // Fallback: Initialize without discovery docs
+            await gapi.client.init({
+                apiKey: API_KEY,
+            });
+            
+            // Manually load the Drive API
+            await gapi.client.load('drive', 'v3');
+            console.log('GAPI client initialized with manual API loading');
+        }
+        
+        console.log('GAPI client initialized successfully');
         gapiInited = true;
         
         // Initialize Google Identity Services
+        if (typeof google === 'undefined' || !google.accounts) {
+            throw new Error('Google Identity Services not loaded');
+        }
+        
         tokenClient = google.accounts.oauth2.initTokenClient({
             client_id: CLIENT_ID,
             scope: SCOPES,
             callback: '', // defined later
         });
         
+        console.log('Google Identity Services initialized successfully');
         gisInited = true;
         
         // Enable sign-in button
@@ -119,6 +156,13 @@ async function initializeGoogleAPIs() {
     } catch (error) {
         console.error('Error initializing Google APIs:', error);
         updateStatus('Failed to initialize Google APIs: ' + error.message, 'error');
+        
+        // Provide more specific error guidance
+        if (error.message.includes('discovery')) {
+            updateStatus('Google API discovery failed. Check your internet connection and try refreshing.', 'error');
+        } else if (error.message.includes('API key')) {
+            updateStatus('Invalid API key. Please check your Google Cloud Console configuration.', 'error');
+        }
     }
 }
 
@@ -380,19 +424,15 @@ async function refreshFiles() {
  * Update status message
  */
 function updateStatus(message, type = 'info') {
-    const statusContent = statusDiv.querySelector('.status-content');
-    if (statusContent) {
-        const textElement = statusContent.querySelector('span');
-        if (textElement) textElement.textContent = message;
+    if (statusText) {
+        statusText.textContent = message;
     }
     
-    // Use minimal styling for info messages, full styling for errors/loading
-    if (type === 'info' && (message.includes('Ready to') || message.includes('Signed out'))) {
-        statusDiv.className = `status-card minimal ${type}`;
-        statusContent.className = 'status-content minimal';
-    } else {
-        statusDiv.className = `status-card ${type}`;
-        statusContent.className = 'status-content';
+    if (statusDiv) {
+        // Remove all status classes
+        statusDiv.classList.remove('loading', 'success', 'error', 'info');
+        // Add new status class
+        statusDiv.classList.add(type);
     }
 }
 
