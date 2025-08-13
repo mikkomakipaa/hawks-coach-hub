@@ -1,12 +1,6 @@
-// Configuration - Set these via environment variables or env-loader.js
-const CLIENT_ID = window.GOOGLE_CLIENT_ID || 'YOUR_GOOGLE_CLIENT_ID_HERE';
-const API_KEY = window.GOOGLE_API_KEY || 'YOUR_GOOGLE_API_KEY_HERE';
-
-// Debug: Log what credentials were loaded
-console.log('Script loaded - CLIENT_ID:', CLIENT_ID);
-console.log('Script loaded - API_KEY:', API_KEY ? 'Present' : 'Missing');
-console.log('From window object - CLIENT_ID:', window.GOOGLE_CLIENT_ID);
-console.log('From window object - API_KEY:', window.GOOGLE_API_KEY ? 'Present' : 'Missing');
+// Configuration - Will be set after env-loader.js runs
+let CLIENT_ID;
+let API_KEY;
 const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest';
 const SCOPES = 'https://www.googleapis.com/auth/drive.metadata.readonly';
 
@@ -42,6 +36,10 @@ document.addEventListener('DOMContentLoaded', initializeApp);
 
 function initializeApp() {
     console.log('Alustetaan Hawks Valmennuskeskusta...');
+    
+    // Load credentials from env-loader.js
+    loadCredentials();
+    
     setupEventListeners();
     updateStatus('Ladataan Google API:ja...', 'loading');
     
@@ -51,6 +49,24 @@ function initializeApp() {
     
     // Wait for APIs to load
     checkAPIsLoaded();
+}
+
+function loadCredentials() {
+    CLIENT_ID = window.GOOGLE_CLIENT_ID || 'YOUR_GOOGLE_CLIENT_ID_HERE';
+    API_KEY = window.GOOGLE_API_KEY || 'YOUR_GOOGLE_API_KEY_HERE';
+    
+    // Debug: Log what credentials were loaded
+    console.log('Loading credentials...');
+    console.log('CLIENT_ID:', CLIENT_ID);
+    console.log('API_KEY:', API_KEY ? 'Present' : 'Missing');
+    console.log('From window - CLIENT_ID:', window.GOOGLE_CLIENT_ID);
+    console.log('From window - API_KEY:', window.GOOGLE_API_KEY ? 'Present' : 'Missing');
+    
+    if (CLIENT_ID === 'YOUR_GOOGLE_CLIENT_ID_HERE' || API_KEY === 'YOUR_GOOGLE_API_KEY_HERE') {
+        console.error('❌ Credentials not loaded properly from env-loader.js');
+    } else {
+        console.log('✅ Credentials loaded successfully');
+    }
 }
 
 function checkAPIsLoaded() {
