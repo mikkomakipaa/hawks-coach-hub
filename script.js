@@ -47,19 +47,33 @@ function initializeApp() {
  */
 function checkAPIsLoaded() {
     let attempts = 0;
-    const maxAttempts = 30; // 15 seconds total
+    const maxAttempts = 60; // 30 seconds total
+    
+    updateStatus('Loading Google APIs...', 'loading');
     
     const checkInterval = setInterval(() => {
         attempts++;
         
+        console.log(`API loading check ${attempts}/${maxAttempts}:`, {
+            gapi: typeof gapi !== 'undefined',
+            google: typeof google !== 'undefined',
+            accounts: typeof google !== 'undefined' && google.accounts
+        });
+        
         if (typeof gapi !== 'undefined' && typeof google !== 'undefined' && google.accounts) {
             clearInterval(checkInterval);
+            console.log('All Google APIs loaded successfully');
             initializeGoogleAPIs();
         } else if (attempts >= maxAttempts) {
             clearInterval(checkInterval);
-            const errorMsg = 'Failed to load Google APIs. Please refresh the page.';
+            const errorMsg = 'Failed to load Google APIs after 30 seconds. Please check your internet connection and refresh the page.';
             updateStatus(errorMsg, 'error');
             showToast('Loading Timeout', errorMsg, 'error');
+            
+            // Provide retry option
+            setTimeout(() => {
+                showToast('Retry Available', 'Click refresh to retry loading Google APIs', 'info', 0);
+            }, 2000);
         }
     }, 500);
 }
@@ -90,6 +104,14 @@ function setupAutoRefresh() {
  */
 async function initializeGoogleAPIs() {
     try {
+        // Check if credentials are properly configured
+        if (CLIENT_ID === 'YOUR_GOOGLE_CLIENT_ID_HERE' || API_KEY === 'YOUR_GOOGLE_API_KEY_HERE') {
+            const credentialsMsg = 'Please configure your Google API credentials. See README.md for setup instructions.';
+            updateStatus(credentialsMsg, 'error');
+            showToast('Configuration Required', credentialsMsg, 'warning', 0);
+            return;
+        }
+        
         updateStatus('Initializing Google Drive API...', 'loading');
         
         // Initialize GAPI client with more robust error handling
@@ -114,25 +136,22 @@ async function initializeGoogleAPIs() {
         // Initialize the client with better error handling
         console.log('Initializing GAPI client with API key...');
         
-        // Try with discovery docs first, fallback to basic init
-        try {
-            await gapi.client.init({
-                apiKey: API_KEY,
-                discoveryDocs: [DISCOVERY_DOC],
-            });
-            console.log('GAPI client initialized with discovery docs');
-        } catch (discoveryError) {
-            console.warn('Discovery docs failed, trying basic initialization:', discoveryError);
-            
-            // Fallback: Initialize without discovery docs
-            await gapi.client.init({
-                apiKey: API_KEY,
-            });
-            
-            // Manually load the Drive API
-            await gapi.client.load('drive', 'v3');
-            console.log('GAPI client initialized with manual API loading');
+        // Validate API key format
+        if (!API_KEY || API_KEY.length < 30 || !API_KEY.startsWith('AIza')) {
+            throw new Error('Invalid API key format. Please check your Google Cloud Console configuration.');
         }
+        
+        // Initialize without discovery docs first (more reliable)
+        console.log('Initializing GAPI client without discovery docs...');
+        await gapi.client.init({
+            apiKey: API_KEY,
+        });
+        
+        // Load the Drive API manually
+        console.log('Loading Google Drive API v3...');
+        await gapi.client.load('drive', 'v3');
+        
+        console.log('GAPI client initialized successfully');
         
         console.log('GAPI client initialized successfully');
         gapiInited = true;
@@ -161,14 +180,18 @@ async function initializeGoogleAPIs() {
         showToast('Initialization Failed', errorMsg, 'error');
         
         // Provide more specific error guidance
-        if (error.message.includes('discovery')) {
-            const discoveryMsg = 'Google API discovery failed. Check your internet connection and try refreshing.';
-            updateStatus(discoveryMsg, 'error');
-            showToast('Connection Issue', discoveryMsg, 'error');
-        } else if (error.message.includes('API key')) {
-            const keyMsg = 'Invalid API key. Please check your Google Cloud Console configuration.';
+        if (error.message.includes('API key') || error.message.includes('Invalid')) {
+            const keyMsg = 'Invalid API key. Please check your Google Cloud Console configuration and ensure the API key is enabled for Google Drive API.';
             updateStatus(keyMsg, 'error');
             showToast('Configuration Error', keyMsg, 'error');
+        } else if (error.message.includes('load') || error.message.includes('network') || error.message.includes('discovery')) {
+            const networkMsg = 'Network error loading Google APIs. Please check your internet connection and try refreshing.';
+            updateStatus(networkMsg, 'error');
+            showToast('Connection Issue', networkMsg, 'error');
+        } else if (error.message.includes('CORS') || error.message.includes('origin')) {
+            const corsMsg = 'Domain not authorized. Please add your domain to authorized JavaScript origins in Google Cloud Console.';
+            updateStatus(corsMsg, 'error');
+            showToast('Authorization Error', corsMsg, 'error');
         }
     }
 }
@@ -550,6 +573,13 @@ function handleSearch() {
  * Refresh files manually
  */
 async function refreshFiles() {
+    if (!gapiInited || !gisInited) {
+        // Try to reinitialize APIs if they failed
+        showToast('Reinitializing', 'Attempting to reload Google APIs...', 'info', 3000);
+        checkAPIsLoaded();
+        return;
+    }
+    
     if (accessToken) {
         showToast('Refreshing Files', 'Updating your training resources...', 'info', 2000);
         await loadDriveFiles();
