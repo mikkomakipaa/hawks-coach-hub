@@ -7,7 +7,7 @@
     <meta name="keywords" content="floorball, coaching, hawks helsinki, training, drills, tactics">
     <meta name="author" content="Hawks Helsinki">
     <title>Hawks Helsinki - Coach Hub</title>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles-minimal.css">
     <link rel="icon" type="image/png" href="hawks.png">
 </head>
 <body>
@@ -57,61 +57,16 @@
             </div>
         </div>
 
-        <!-- Folder Navigation Bar -->
-        <div class="folder-nav-bar">
-            <div class="folder-chips-container">
-                <div class="folder-chips-label">📁 Quick Access:</div>
-                <div class="folder-chips" id="folderChips"></div>
-            </div>
+        <!-- Folder Quick Access -->
+        <div class="folder-chips-bar" id="folderChipsBar" style="display: none;">
+            <div class="folder-chips" id="folderChips"></div>
         </div>
 
-        <div class="content-grid">
-            <div class="main-section">
-                <div class="section-card" id="all-files">
-                    <div class="section-header">
-                        <h2 id="mainSectionTitle">All Training Resources</h2>
-                        <div class="section-controls">
-                            <div class="section-badge" id="fileCount">0 files</div>
-                            <div class="view-controls">
-                                <button class="view-toggle active" data-view="list" title="List view">☰</button>
-                                <button class="view-toggle" data-view="grid" title="Grid view">⊞</button>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="file-list" id="allFilesList"></div>
-                </div>
-            </div>
-
-            <div class="sidebar">
-                <div class="section-card" id="content-stats">
-                    <div class="section-header">
-                        <h2>📊 Content Overview</h2>
-                    </div>
-                    <div class="stats-grid" id="statsContainer">
-                        <div class="stat-item">
-                            <div class="stat-number" id="totalFiles">0</div>
-                            <div class="stat-label">Files</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-number" id="totalFolders">0</div>
-                            <div class="stat-label">Folders</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-number" id="currentViewCount">0</div>
-                            <div class="stat-label">Showing</div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="section-card" id="categorized-files">
-                    <div class="section-header">
-                        <h2>🏷️ Smart Categories</h2>
-                        <div class="category-toggle">
-                            <button id="categoryToggle" class="toggle-btn" title="Expand/Collapse">−</button>
-                        </div>
-                    </div>
-                    <div class="categories" id="categoriesList"></div>
-                </div>
+        <!-- Simple File List -->
+        <div class="simple-container">
+            <div class="files-section">
+                <div class="file-list-simple" id="allFilesList"></div>
+                <div class="file-count" id="fileCount">0 files found</div>
             </div>
         </div>
     </main>
@@ -133,6 +88,6 @@
     <script src="env-loader.js"></script>
     <script src="https://apis.google.com/js/api.js" async defer onload="window.gapiLoaded = true"></script>
     <script src="https://accounts.google.com/gsi/client" async defer onload="window.gisLoaded = true"></script>
-    <script src="script.js" defer></script>
+    <script src="script-minimal.js" defer></script>
 </body>
 </html>
