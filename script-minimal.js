@@ -148,6 +148,8 @@ async function initializeGoogleAPIs() {
                 client_id: CLIENT_ID,
                 scope: SCOPES,
                 callback: '', // defined later
+                hint: localStorage.getItem('google_account_hint') || undefined,
+                state: 'hawks_coach_hub_session'
             });
             
             console.log('Google Identity Services alustettu onnistuneesti');
@@ -187,11 +189,33 @@ function maybeEnableButtons() {
     console.log('Checking if APIs are ready:', { gapiInited, gisInited });
     
     if (gapiInited && gisInited) {
-        console.log('Both APIs initialized - enabling sign-in button');
-        document.getElementById('authorize_div').style.display = 'block';
-        document.getElementById('signout_div').style.display = 'none';
-        updateStatus('Valmis kirjautumaan Google Driveen', 'info');
-        showToast('Valmis kirjautumaan', 'Google API:t ladattu onnistuneesti', 'success', 3000);
+        console.log('Both APIs initialized - checking for existing session');
+        
+        // Check for existing valid token
+        const existingToken = gapi.client.getToken();
+        if (existingToken && existingToken.access_token) {
+            console.log('Found existing valid session');
+            accessToken = existingToken.access_token;
+            document.getElementById('signout_div').style.display = 'block';
+            document.getElementById('authorize_div').style.display = 'none';
+            updateStatus('Kirjauduttu sisään - ladataan tiedostoja...', 'loading');
+            showToast('Istunto palautettu', 'Kirjautuminen säilytetty', 'success', 2000);
+            
+            // Automatically load files
+            loadDriveFiles().catch(error => {
+                console.error('Error loading files from restored session:', error);
+                // If loading fails, show login button
+                document.getElementById('signout_div').style.display = 'none';
+                document.getElementById('authorize_div').style.display = 'block';
+                updateStatus('Valmis kirjautumaan Google Driveen', 'info');
+            });
+        } else {
+            console.log('No existing session found - showing login button');
+            document.getElementById('authorize_div').style.display = 'block';
+            document.getElementById('signout_div').style.display = 'none';
+            updateStatus('Valmis kirjautumaan Google Driveen', 'info');
+            showToast('Valmis kirjautumaan', 'Google API:t ladattu onnistuneesti', 'success', 3000);
+        }
     } else {
         console.log('APIs not ready yet:', { 
             gapiInited, 
@@ -236,6 +260,13 @@ function handleAuthClick() {
         
         console.log('Todennus onnistui, ladataan tiedostoja...');
         accessToken = resp.access_token;
+        
+        // Store session information for persistence
+        if (resp.state === 'hawks_coach_hub_session') {
+            localStorage.setItem('last_login_time', Date.now().toString());
+            localStorage.setItem('session_active', 'true');
+        }
+        
         document.getElementById('signout_div').style.display = 'block';
         document.getElementById('authorize_div').style.display = 'none';
         showToast('Todennus onnistui', 'Yhteys Google Driveen muodostettu', 'success');
@@ -270,6 +301,12 @@ function handleSignoutClick() {
         gapi.client.setToken('');
     }
     accessToken = '';
+    
+    // Clear session information
+    localStorage.removeItem('last_login_time');
+    localStorage.removeItem('session_active');
+    localStorage.removeItem('google_account_hint');
+    
     document.getElementById('signout_div').style.display = 'none';
     document.getElementById('authorize_div').style.display = 'block';
     clearFilesList();
@@ -277,57 +314,69 @@ function handleSignoutClick() {
     showToast('Kirjauduttu ulos', 'Yhteys Google Driveen katkaistiin', 'info');
 }
 
+// Helper function to get all files with pagination
+async function getAllFilesWithPagination(query, fields = 'nextPageToken, files(id, name, mimeType, modifiedTime, webViewLink, parents)') {
+    let allFiles = [];
+    let pageToken = null;
+    
+    do {
+        const request = {
+            pageSize: 1000,
+            fields: fields,
+            orderBy: 'name',
+            q: query
+        };
+        
+        if (pageToken) {
+            request.pageToken = pageToken;
+        }
+        
+        const response = await gapi.client.drive.files.list(request);
+        const files = response.result.files || [];
+        allFiles = allFiles.concat(files);
+        pageToken = response.result.nextPageToken;
+        
+    } while (pageToken);
+    
+    return allFiles;
+}
+
 async function loadDriveFiles() {
     updateStatus('Ladataan tiedostoja Google Drivesta...', 'loading');
     showToast('Ladataan tiedostoja', 'Haetaan harjoitusmateriaaleja...', 'info', 2000);
     
     try {
-        // Load files from the source folder and its subfolders
-        const [filesResponse, foldersResponse, allFoldersResponse] = await Promise.all([
-            gapi.client.drive.files.list({
-                pageSize: 1000,
-                fields: 'nextPageToken, files(id, name, mimeType, modifiedTime, webViewLink, parents)',
-                orderBy: 'name',
-                q: `"${SOURCE_FOLDER_ID}" in parents and mimeType != 'application/vnd.google-apps.folder'`
-            }),
-            gapi.client.drive.files.list({
-                pageSize: 500,
-                fields: 'nextPageToken, files(id, name, mimeType, webViewLink, parents)',
-                orderBy: 'name',
-                q: `"${SOURCE_FOLDER_ID}" in parents and mimeType = 'application/vnd.google-apps.folder'`
-            }),
-            // Also get all subfolders to find files in them
-            gapi.client.drive.files.list({
-                pageSize: 1000,
-                fields: 'nextPageToken, files(id, name, mimeType, webViewLink, parents)',
-                orderBy: 'name',
-                q: "mimeType = 'application/vnd.google-apps.folder'"
-            })
+        // Load all files and folders from the source folder with pagination
+        console.log(`Loading files from source folder: ${SOURCE_FOLDER_ID}`);
+        
+        const [files, subfolders] = await Promise.all([
+            getAllFilesWithPagination(`"${SOURCE_FOLDER_ID}" in parents and mimeType != 'application/vnd.google-apps.folder'`),
+            getAllFilesWithPagination(`"${SOURCE_FOLDER_ID}" in parents and mimeType = 'application/vnd.google-apps.folder'`)
         ]);
-
-        const files = filesResponse.result.files || [];
-        const subfolders = foldersResponse.result.files || [];
-        const allFoldersForSearch = allFoldersResponse.result.files || [];
+        
+        console.log(`Found ${files.length} files and ${subfolders.length} subfolders in source folder`);
         
         // Find all files in subfolders of the source folder
         let allSubfolderFiles = [];
         if (subfolders.length > 0) {
-            const subfolderFilePromises = subfolders.map(folder => 
-                gapi.client.drive.files.list({
-                    pageSize: 1000,
-                    fields: 'nextPageToken, files(id, name, mimeType, modifiedTime, webViewLink, parents)',
-                    orderBy: 'name',
-                    q: `"${folder.id}" in parents and mimeType != 'application/vnd.google-apps.folder'`
-                })
-            );
+            console.log(`Loading files from ${subfolders.length} subfolders...`);
             
-            const subfolderResponses = await Promise.all(subfolderFilePromises);
-            allSubfolderFiles = subfolderResponses.flatMap(response => response.result.files || []);
+            const subfolderFilePromises = subfolders.map(async (folder) => {
+                const files = await getAllFilesWithPagination(`"${folder.id}" in parents and mimeType != 'application/vnd.google-apps.folder'`);
+                console.log(`Subfolder "${folder.name}" contains ${files.length} files`);
+                return files;
+            });
+            
+            const subfolderFileArrays = await Promise.all(subfolderFilePromises);
+            allSubfolderFiles = subfolderFileArrays.flat();
+            console.log(`Total files in subfolders: ${allSubfolderFiles.length}`);
         }
         
         // Combine all files
         const allFoundFiles = [...files, ...allSubfolderFiles];
         const folders = subfolders;
+        
+        console.log(`Total files found: ${allFoundFiles.length}`);
         
         if (allFoundFiles && allFoundFiles.length > 0) {
             allFiles = allFoundFiles.filter(file => 

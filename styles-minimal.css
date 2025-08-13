@@ -178,6 +178,8 @@ main {
     font-size: 0.9rem;
     transition: var(--transition);
     white-space: nowrap;
+    min-width: 120px;
+    flex-shrink: 0;
 }
 
 .refresh-btn:hover {
