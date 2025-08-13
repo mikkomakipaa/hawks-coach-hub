@@ -24,7 +24,6 @@ const searchInput = document.getElementById('searchInput');
 const refreshButton = document.getElementById('refreshButton');
 const allFilesList = document.getElementById('allFilesList');
 const categoriesList = document.getElementById('categoriesList');
-const lastUpdated = document.getElementById('lastUpdated');
 const fileCountBadge = document.getElementById('fileCount');
 const toastContainer = document.getElementById('toastContainer');
 
@@ -255,7 +254,6 @@ async function loadDriveFiles() {
             updateFileCount();
             updateStatus(`Successfully loaded ${allFiles.length} training resources`, 'success');
             showToast('Files Loaded', `Found ${allFiles.length} training resources`, 'success');
-            lastUpdated.textContent = new Date().toLocaleString();
         } else {
             hideSkeletonLoading();
             updateStatus('No files found', 'info');
