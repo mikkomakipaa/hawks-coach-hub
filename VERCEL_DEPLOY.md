@@ -18,16 +18,19 @@ vercel --prod
 - During setup, if asked for output directory, use: `./`
 - If asked for build command, leave empty or use: `echo "Static site"`
 
-### 3. Configure Environment Variables (After Deployment)
+### 3. Configure Credentials for Production
 
-In Vercel Dashboard:
-1. Go to your project → Settings → Environment Variables
-2. Add these variables:
+**Option A: Direct Configuration (Recommended for testing)**
+Update `env-loader.js` with your production credentials:
+```javascript
+// Replace these with your production credentials
+window.GOOGLE_CLIENT_ID = 'your_production_client_id_here';
+window.GOOGLE_API_KEY = 'your_production_api_key_here';
+```
 
-```
-GOOGLE_CLIENT_ID = your_google_client_id_here
-GOOGLE_API_KEY = your_google_api_key_here
-```
+**Option B: Environment Variables (Advanced)**
+For environment variables to work in Vercel with static sites, you need a build process.
+Current setup uses direct credential configuration in env-loader.js.
 
 ### 4. Update Google Cloud Console
 
