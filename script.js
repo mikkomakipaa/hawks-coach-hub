@@ -28,7 +28,7 @@ const refreshButton = document.getElementById('refreshButton');
 const allFilesList = document.getElementById('allFilesList');
 const categoriesList = document.getElementById('categoriesList');
 const fileCountBadge = document.getElementById('fileCount');
-const toastContainer = document.getElementById('toastContainer');
+const toastContainer = document.getElementById('toastContainer');\nconst folderChips = document.getElementById('folderChips');\nconst mainSectionTitle = document.getElementById('mainSectionTitle');\nconst totalFilesEl = document.getElementById('totalFiles');\nconst totalFoldersEl = document.getElementById('totalFolders');\nconst currentViewCountEl = document.getElementById('currentViewCount');
 
 // Initialize when page loads
 document.addEventListener('DOMContentLoaded', initializeApp);
