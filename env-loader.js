@@ -9,8 +9,8 @@
         // For now, you can manually set these variables for local development:
         
         // Uncomment and set your local development credentials:
-        // window.GOOGLE_CLIENT_ID = 'your-local-client-id';
-        // window.GOOGLE_API_KEY = 'your-local-api-key';
+        // window.GOOGLE_CLIENT_ID = '1065457583274-6k0r5kfrvrelg1ufr2887814j33ga6va.apps.googleusercontent.com';
+        // window.GOOGLE_API_KEY = 'AIzaSyA1sQ8pUAKbsE8gwZfG-9Z-lwRLWO9GXak';
         
         console.log('🔧 Development mode: Update env-loader.js with your local credentials');
     } else {

@@ -41,12 +41,36 @@ A professional web application for Hawks Helsinki coaches to easily access train
 
 ### 3. Configure the Application
 
+**⚠️ SECURITY WARNING: Never commit API keys to public repositories!**
+
+#### Option A: Local Development (Recommended)
+1. Copy the environment template:
+   ```bash
+   cp .env.example .env
+   ```
+2. Edit `.env` with your credentials:
+   ```bash
+   GOOGLE_CLIENT_ID=your-actual-client-id.apps.googleusercontent.com
+   GOOGLE_API_KEY=your-actual-api-key
+   ```
+3. Uncomment and update credentials in `env-loader.js`:
+   ```javascript
+   window.GOOGLE_CLIENT_ID = 'your-actual-client-id.apps.googleusercontent.com';
+   window.GOOGLE_API_KEY = 'your-actual-api-key';
+   ```
+
+#### Option B: Direct Configuration (Not Recommended for Public Repos)
 1. Open `script.js`
 2. Replace the placeholder values:
    ```javascript
    const CLIENT_ID = 'your-actual-client-id.apps.googleusercontent.com';
    const API_KEY = 'your-actual-api-key';
    ```
+
+#### Option C: Production Environment Variables
+Set these in your hosting platform (Netlify, Vercel, etc.):
+- `GOOGLE_CLIENT_ID`
+- `GOOGLE_API_KEY`
 
 ### 4. Local Testing
 

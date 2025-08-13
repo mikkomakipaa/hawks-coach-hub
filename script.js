@@ -1,7 +1,7 @@
-// Configuration - Replace with your actual values or use .env file
-// WARNING: These are public credentials - ensure proper restrictions in Google Cloud Console
-const CLIENT_ID = window.GOOGLE_CLIENT_ID || '1065457583274-6k0r5kfrvrelg1ufr2887814j33ga6va.apps.googleusercontent.com';
-const API_KEY = window.GOOGLE_API_KEY || 'AIzaSyA1sQ8pUAKbsE8gwZfG-9Z-lwRLWO9GXak';
+// Configuration - Set these via environment variables or env-loader.js
+// Get your credentials from Google Cloud Console: https://console.cloud.google.com/
+const CLIENT_ID = window.GOOGLE_CLIENT_ID || 'YOUR_GOOGLE_CLIENT_ID_HERE';
+const API_KEY = window.GOOGLE_API_KEY || 'YOUR_GOOGLE_API_KEY_HERE';
 const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest';
 const SCOPES = 'https://www.googleapis.com/auth/drive.metadata.readonly';
 
