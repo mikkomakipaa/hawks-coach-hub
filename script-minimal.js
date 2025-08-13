@@ -22,8 +22,7 @@ const authorizeDiv = document.getElementById('authorize_div');
 const signoutDiv = document.getElementById('signout_div');
 const authorizeButton = document.getElementById('authorize_button');
 const signoutButton = document.getElementById('signout_button');
-const statusDiv = document.querySelector('.status-content');
-const statusText = document.getElementById('statusText');
+// Status elements removed from UI
 const searchInput = document.getElementById('searchInput');
 const refreshButton = document.getElementById('refreshButton');
 const allFilesList = document.getElementById('allFilesList');
@@ -531,14 +530,8 @@ async function refreshFiles() {
 }
 
 function updateStatus(message, type = 'info') {
-    if (statusText) {
-        statusText.textContent = message;
-    }
-    
-    if (statusDiv) {
-        statusDiv.classList.remove('loading', 'success', 'error', 'info');
-        statusDiv.classList.add(type);
-    }
+    // Status display removed from UI - messages now only shown via console/toasts
+    console.log(`Status [${type}]: ${message}`);
 }
 
 function updateFileCount() {
