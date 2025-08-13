@@ -18,10 +18,5 @@
         window.GOOGLE_API_KEY = 'AIzaSyCXVw8YDsjaMoqipgcIDlImN8o-rd7Mezg';
         
         console.log('🚀 Production mode: Using production credentials');
-        
-        // Log domain and credentials for debugging
-        console.log('Current domain:', window.location.hostname);
-        console.log('CLIENT_ID loaded:', window.GOOGLE_CLIENT_ID);
-        console.log('API_KEY loaded:', window.GOOGLE_API_KEY ? 'Present' : 'Missing');
     }
 })();

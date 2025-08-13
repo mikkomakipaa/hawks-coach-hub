@@ -55,13 +55,6 @@ function loadCredentials() {
     CLIENT_ID = window.GOOGLE_CLIENT_ID || 'YOUR_GOOGLE_CLIENT_ID_HERE';
     API_KEY = window.GOOGLE_API_KEY || 'YOUR_GOOGLE_API_KEY_HERE';
     
-    // Debug: Log what credentials were loaded
-    console.log('Loading credentials...');
-    console.log('CLIENT_ID:', CLIENT_ID);
-    console.log('API_KEY:', API_KEY ? 'Present' : 'Missing');
-    console.log('From window - CLIENT_ID:', window.GOOGLE_CLIENT_ID);
-    console.log('From window - API_KEY:', window.GOOGLE_API_KEY ? 'Present' : 'Missing');
-    
     if (CLIENT_ID === 'YOUR_GOOGLE_CLIENT_ID_HERE' || API_KEY === 'YOUR_GOOGLE_API_KEY_HERE') {
         console.error('❌ Credentials not loaded properly from env-loader.js');
     } else {
