@@ -348,16 +348,16 @@ async function loadDriveFiles() {
         // Load all files and all folders from the entire Drive with pagination
         console.log('Loading all files and folders from Google Drive');
         
-        const [allFiles, allFolders] = await Promise.all([
+        const [driveFiles, driveFolders] = await Promise.all([
             getAllFilesWithPagination(`mimeType != 'application/vnd.google-apps.folder'`),
             getAllFilesWithPagination(`mimeType = 'application/vnd.google-apps.folder'`)
         ]);
         
-        console.log(`Found ${allFiles.length} total files and ${allFolders.length} total folders in Drive`);
+        console.log(`Found ${driveFiles.length} total files and ${driveFolders.length} total folders in Drive`);
         
         // Combine all files and folders
-        const allFoundFiles = allFiles;
-        const folders = allFolders;
+        const allFoundFiles = driveFiles;
+        const folders = driveFolders;
         
         console.log(`Total files found: ${allFoundFiles.length}`);
         
