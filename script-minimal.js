@@ -4,7 +4,8 @@ const API_KEY = window.GOOGLE_API_KEY || 'YOUR_GOOGLE_API_KEY_HERE';
 const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest';
 const SCOPES = 'https://www.googleapis.com/auth/drive.metadata.readonly';
 
-// Note: Now loading all folders from entire Google Drive
+// Source folder configuration  
+const SOURCE_FOLDER_ID = '1OEK4hCI6XzbS548UB4Rxd0OxlubsPADg';
 
 // Global variables
 let tokenClient;
@@ -344,39 +345,64 @@ async function loadDriveFiles() {
     showToast('Ladataan tiedostoja', 'Haetaan harjoitusmateriaaleja...', 'info', 2000);
     
     try {
-        // Load all files and all folders from the entire Drive with pagination
-        console.log('Loading all files and folders from Google Drive');
+        // Load files from source folder and its subfolders (focused approach)
+        console.log(`Loading files and subfolders from source folder: ${SOURCE_FOLDER_ID}`);
         
-        const [driveFiles, driveFolders] = await Promise.all([
-            getAllFilesWithPagination(`mimeType != 'application/vnd.google-apps.folder'`),
-            getAllFilesWithPagination(`mimeType = 'application/vnd.google-apps.folder'`)
+        const [sourceFiles, subfolders] = await Promise.all([
+            // Files directly in source folder
+            getAllFilesWithPagination(`"${SOURCE_FOLDER_ID}" in parents and mimeType != 'application/vnd.google-apps.folder'`),
+            // Subfolders of source folder
+            getAllFilesWithPagination(`"${SOURCE_FOLDER_ID}" in parents and mimeType = 'application/vnd.google-apps.folder'`)
         ]);
         
-        console.log(`Found ${driveFiles.length} total files and ${driveFolders.length} total folders in Drive`);
+        console.log(`Found ${sourceFiles.length} files in source folder and ${subfolders.length} subfolders`);
+        console.log('Source files:', sourceFiles.map(f => f.name));
+        console.log('Subfolders:', subfolders.map(f => f.name));
         
-        // Combine all files and folders
-        const allFoundFiles = driveFiles;
-        const folders = driveFolders;
+        // Load files from all subfolders
+        let subfolderFiles = [];
+        if (subfolders.length > 0) {
+            console.log(`Loading files from ${subfolders.length} subfolders...`);
+            
+            const subfolderFilePromises = subfolders.map(async (folder) => {
+                const files = await getAllFilesWithPagination(`"${folder.id}" in parents and mimeType != 'application/vnd.google-apps.folder'`);
+                console.log(`Subfolder "${folder.name}" contains ${files.length} files`);
+                return files;
+            });
+            
+            const subfolderFileArrays = await Promise.all(subfolderFilePromises);
+            subfolderFiles = subfolderFileArrays.flat();
+            console.log(`Total files in subfolders: ${subfolderFiles.length}`);
+        }
         
-        console.log(`Total files found: ${allFoundFiles.length}`);
+        // Combine files from source folder and all its subfolders
+        const allFoundFiles = [...sourceFiles, ...subfolderFiles];
+        // Use only subfolders from source folder for chips (focused approach)
+        const folders = subfolders;
+        
+        console.log(`Total files found in source folder tree: ${allFoundFiles.length}`);
         
         if (allFoundFiles && allFoundFiles.length > 0) {
-            allFiles = allFoundFiles.filter(file => 
+            // Assign to global allFiles variable
+            allFiles.length = 0; // Clear array
+            allFiles.push(...allFoundFiles.filter(file => 
                 !file.name.startsWith('.') && 
                 file.mimeType !== 'application/vnd.google-apps.script'
-            );
+            ));
             
             filteredFiles = [...allFiles];
         } else {
-            allFiles = [];
+            allFiles.length = 0; // Clear array
             filteredFiles = [];
         }
         
         if (folders && folders.length > 0) {
-            allFolders = folders.filter(folder => !folder.name.startsWith('.'));
+            // Assign to global allFolders variable
+            allFolders.length = 0; // Clear array
+            allFolders.push(...folders.filter(folder => !folder.name.startsWith('.')));
             cacheFolderStructure();
         } else {
-            allFolders = [];
+            allFolders.length = 0; // Clear array
         }
         
         displayFiles();
@@ -384,10 +410,10 @@ async function loadDriveFiles() {
         updateFileCount();
         
         if (allFiles.length === 0) {
-            updateStatus('Tiedostoja ei löytynyt', 'info');
-            showToast('Tiedostoja ei löytynyt', 'Google Drivestasi ei löytynyt harjoitusmateriaaleja', 'info');
+            updateStatus('Tiedostoja ei löytynyt valitusta kansiosta', 'info');
+            showToast('Tiedostoja ei löytynyt', 'Valitusta kansiosta ei löytynyt harjoitusmateriaaleja', 'info');
         } else {
-            updateStatus(`Ladattiin onnistuneesti ${allFiles.length} harjoitusmateriaalia`, 'success');
+            updateStatus(`Ladattiin onnistuneesti ${allFiles.length} harjoitusmateriaalia valitusta kansiosta`, 'success');
             showToast('Tiedostot ladattu', `Löydettiin ${allFiles.length} harjoitusmateriaalia`, 'success');
         }
     } catch (error) {
@@ -625,9 +651,17 @@ function cacheFolderStructure() {
             fileCount: filesInFolder.length,
             files: filesInFolder
         });
+        
+        console.log(`Folder "${folder.name}" has ${filesInFolder.length} files`);
     });
     
     console.log(`Välimuistiin tallennettu ${folderCache.size} kansiota tiedostomäärineen`);
+    
+    // Debug: Show all folders and their file counts
+    const foldersWithFiles = Array.from(folderCache.values()).filter(f => f.fileCount > 0);
+    const foldersWithoutFiles = Array.from(folderCache.values()).filter(f => f.fileCount === 0);
+    console.log(`Folders with files: ${foldersWithFiles.length}`, foldersWithFiles.map(f => `${f.name} (${f.fileCount})`));
+    console.log(`Folders without files: ${foldersWithoutFiles.length}`, foldersWithoutFiles.map(f => f.name));
 }
 
 function displayFolderNavigation() {

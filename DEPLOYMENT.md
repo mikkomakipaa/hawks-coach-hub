@@ -31,11 +31,27 @@ git push origin main
 # 3. Drag and drop project folder to Netlify
 ```
 
-### Option 3: Vercel
+### Option 3: Vercel (For Current Testing)
 ```bash
+# 1. Install Vercel CLI
 npm install -g vercel
+
+# 2. Deploy from project directory
+cd /Users/mikko.makipaa/google_drive_landing
 vercel --prod
+
+# 3. Follow prompts:
+# - Set up and deploy? Y
+# - Which scope? (select your account)
+# - Link to existing project? N
+# - What's your project's name? hawks-coach-hub
+# - In which directory is your code located? ./
 ```
+
+**Alternative: Deploy via GitHub**
+1. Push code to GitHub repository
+2. Connect GitHub repo to Vercel dashboard
+3. Auto-deploy on every commit
 
 ## 🔧 Environment Configuration
 
