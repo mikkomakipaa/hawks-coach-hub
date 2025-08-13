@@ -39,12 +39,40 @@ vercel --prod
 
 ## 🔧 Environment Configuration
 
+### Local Development:
+1. **Copy environment template**:
+   ```bash
+   cp .env.example .env
+   ```
+
+2. **Edit .env file** with your credentials:
+   ```bash
+   GOOGLE_CLIENT_ID=your-development-client-id
+   GOOGLE_API_KEY=your-development-api-key
+   ```
+
+3. **Update env-loader.js** for local development:
+   ```javascript
+   // Uncomment and set in env-loader.js:
+   window.GOOGLE_CLIENT_ID = 'your-local-client-id';
+   window.GOOGLE_API_KEY = 'your-local-api-key';
+   ```
+
 ### Production Environment Variables:
+Choose one of these methods for production:
+
+#### Option A: Global Variables (Recommended)
+Add these to your hosting platform's environment settings:
 ```bash
-# Add these to your hosting platform
 GOOGLE_CLIENT_ID=your-production-client-id
 GOOGLE_API_KEY=your-production-api-key
 ```
+
+#### Option B: Build-time Variables
+For platforms like Netlify/Vercel, add environment variables that get injected at build time.
+
+#### Option C: Direct Replacement
+Replace the fallback values in script.js with your production credentials.
 
 ### Google Cloud Console Production Settings:
 1. **Authorized JavaScript Origins**:

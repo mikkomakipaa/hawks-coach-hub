@@ -1,7 +1,7 @@
-// Configuration - Replace with your actual values
+// Configuration - Replace with your actual values or use .env file
 // WARNING: These are public credentials - ensure proper restrictions in Google Cloud Console
-const CLIENT_ID = '1065457583274-6k0r5kfrvrelg1ufr2887814j33ga6va.apps.googleusercontent.com';
-const API_KEY = 'AIzaSyA1sQ8pUAKbsE8gwZfG-9Z-lwRLWO9GXak';
+const CLIENT_ID = window.GOOGLE_CLIENT_ID || '1065457583274-6k0r5kfrvrelg1ufr2887814j33ga6va.apps.googleusercontent.com';
+const API_KEY = window.GOOGLE_API_KEY || 'AIzaSyA1sQ8pUAKbsE8gwZfG-9Z-lwRLWO9GXak';
 const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest';
 const SCOPES = 'https://www.googleapis.com/auth/drive.metadata.readonly';
 
@@ -26,7 +26,7 @@ const allFilesList = document.getElementById('allFilesList');
 const categoriesList = document.getElementById('categoriesList');
 const lastUpdated = document.getElementById('lastUpdated');
 const fileCountBadge = document.getElementById('fileCount');
-const totalFilesSpan = document.getElementById('totalFiles');
+const toastContainer = document.getElementById('toastContainer');
 
 // Initialize when page loads
 document.addEventListener('DOMContentLoaded', initializeApp);
@@ -58,7 +58,9 @@ function checkAPIsLoaded() {
             initializeGoogleAPIs();
         } else if (attempts >= maxAttempts) {
             clearInterval(checkInterval);
-            updateStatus('Failed to load Google APIs. Please refresh the page.', 'error');
+            const errorMsg = 'Failed to load Google APIs. Please refresh the page.';
+            updateStatus(errorMsg, 'error');
+            showToast('Loading Timeout', errorMsg, 'error');
         }
     }, 500);
 }
@@ -155,13 +157,19 @@ async function initializeGoogleAPIs() {
         
     } catch (error) {
         console.error('Error initializing Google APIs:', error);
-        updateStatus('Failed to initialize Google APIs: ' + error.message, 'error');
+        const errorMsg = 'Failed to initialize Google APIs: ' + error.message;
+        updateStatus(errorMsg, 'error');
+        showToast('Initialization Failed', errorMsg, 'error');
         
         // Provide more specific error guidance
         if (error.message.includes('discovery')) {
-            updateStatus('Google API discovery failed. Check your internet connection and try refreshing.', 'error');
+            const discoveryMsg = 'Google API discovery failed. Check your internet connection and try refreshing.';
+            updateStatus(discoveryMsg, 'error');
+            showToast('Connection Issue', discoveryMsg, 'error');
         } else if (error.message.includes('API key')) {
-            updateStatus('Invalid API key. Please check your Google Cloud Console configuration.', 'error');
+            const keyMsg = 'Invalid API key. Please check your Google Cloud Console configuration.';
+            updateStatus(keyMsg, 'error');
+            showToast('Configuration Error', keyMsg, 'error');
         }
     }
 }
@@ -182,12 +190,15 @@ function maybeEnableButtons() {
 function handleAuthClick() {
     tokenClient.callback = async (resp) => {
         if (resp.error !== undefined) {
-            updateStatus('Authorization failed: ' + resp.error, 'error');
+            const errorMsg = 'Authorization failed: ' + resp.error;
+            updateStatus(errorMsg, 'error');
+            showToast('Authentication Failed', errorMsg, 'error');
             throw (resp);
         }
         accessToken = resp.access_token;
         document.getElementById('signout_div').style.display = 'block';
         document.getElementById('authorize_div').style.display = 'none';
+        showToast('Authentication Successful', 'Successfully connected to Google Drive', 'success');
         await loadDriveFiles();
     };
 
@@ -212,6 +223,7 @@ function handleSignoutClick() {
     document.getElementById('authorize_div').style.display = 'block';
     clearFilesList();
     updateStatus('Signed out', 'info');
+    showToast('Signed Out', 'Successfully disconnected from Google Drive', 'info');
 }
 
 /**
@@ -219,6 +231,7 @@ function handleSignoutClick() {
  */
 async function loadDriveFiles() {
     updateStatus('Loading files from Google Drive...', 'loading');
+    showSkeletonLoading();
     
     try {
         const response = await gapi.client.drive.files.list({
@@ -236,18 +249,84 @@ async function loadDriveFiles() {
             );
             
             filteredFiles = [...allFiles];
+            hideSkeletonLoading();
             displayFiles();
             displayCategories();
             updateFileCount();
             updateStatus(`Successfully loaded ${allFiles.length} training resources`, 'success');
+            showToast('Files Loaded', `Found ${allFiles.length} training resources`, 'success');
             lastUpdated.textContent = new Date().toLocaleString();
         } else {
+            hideSkeletonLoading();
             updateStatus('No files found', 'info');
+            showToast('No Files Found', 'No training resources found in your Google Drive', 'info');
         }
     } catch (error) {
         console.error('Error loading files:', error);
-        updateStatus('Error loading files: ' + error.message, 'error');
+        hideSkeletonLoading();
+        const errorMsg = 'Error loading files: ' + error.message;
+        updateStatus(errorMsg, 'error');
+        showToast('Loading Failed', errorMsg, 'error');
     }
+}
+
+/**
+ * Show skeleton loading animation
+ */
+function showSkeletonLoading() {
+    allFilesList.innerHTML = '';
+    categoriesList.innerHTML = '';
+    
+    // Create skeleton items for main list
+    for (let i = 0; i < 8; i++) {
+        const skeleton = createSkeletonItem();
+        allFilesList.appendChild(skeleton);
+    }
+    
+    // Create skeleton for categories
+    for (let i = 0; i < 3; i++) {
+        const categorySkeleton = createCategorySkeleton();
+        categoriesList.appendChild(categorySkeleton);
+    }
+}
+
+/**
+ * Hide skeleton loading animation
+ */
+function hideSkeletonLoading() {
+    const skeletons = document.querySelectorAll('.skeleton-item, .skeleton-category');
+    skeletons.forEach(skeleton => skeleton.remove());
+}
+
+/**
+ * Create skeleton file item
+ */
+function createSkeletonItem() {
+    const skeleton = document.createElement('div');
+    skeleton.className = 'file-item skeleton-item';
+    skeleton.innerHTML = `
+        <div class="file-icon skeleton-circle"></div>
+        <div class="file-info">
+            <div class="skeleton-text skeleton-title"></div>
+            <div class="skeleton-text skeleton-date"></div>
+        </div>
+    `;
+    return skeleton;
+}
+
+/**
+ * Create skeleton category section
+ */
+function createCategorySkeleton() {
+    const skeleton = document.createElement('div');
+    skeleton.className = 'category skeleton-category';
+    skeleton.innerHTML = `
+        <div class="skeleton-text skeleton-category-title"></div>
+        <div class="skeleton-text skeleton-category-item"></div>
+        <div class="skeleton-text skeleton-category-item"></div>
+        <div class="skeleton-text skeleton-category-item"></div>
+    `;
+    return skeleton;
 }
 
 /**
@@ -257,7 +336,9 @@ function displayFiles() {
     allFilesList.innerHTML = '';
     
     if (filteredFiles.length === 0) {
-        allFilesList.innerHTML = '<div class="loading">No files match your search</div>';
+        const isSearching = searchInput.value.trim() !== '';
+        const emptyState = createEmptyState(isSearching);
+        allFilesList.appendChild(emptyState);
         return;
     }
 
@@ -265,6 +346,53 @@ function displayFiles() {
         const fileItem = createFileItem(file);
         allFilesList.appendChild(fileItem);
     });
+}
+
+/**
+ * Create appropriate empty state based on context
+ */
+function createEmptyState(isSearching) {
+    const emptyDiv = document.createElement('div');
+    emptyDiv.className = 'empty-state';
+    
+    if (isSearching) {
+        emptyDiv.innerHTML = `
+            <div class="empty-icon">🔍</div>
+            <h3>No training resources found</h3>
+            <p>Try adjusting your search terms or browse by category instead.</p>
+            <button class="empty-action" onclick="searchInput.value=''; handleSearch();">
+                Clear Search
+            </button>
+        `;
+    } else if (allFiles.length === 0) {
+        emptyDiv.innerHTML = `
+            <div class="empty-icon">📁</div>
+            <h3>Welcome to Hawks Coach Hub</h3>
+            <p>Sign in with Google Drive to access your training resources, drills, and tactical materials.</p>
+            <div class="empty-steps">
+                <div class="step">
+                    <span class="step-number">1</span>
+                    <span>Click "Sign In" above</span>
+                </div>
+                <div class="step">
+                    <span class="step-number">2</span>
+                    <span>Authorize Google Drive access</span>
+                </div>
+                <div class="step">
+                    <span class="step-number">3</span>
+                    <span>Start browsing your files</span>
+                </div>
+            </div>
+        `;
+    } else {
+        emptyDiv.innerHTML = `
+            <div class="empty-icon">📋</div>
+            <h3>No files in this category</h3>
+            <p>This category is currently empty. Files will appear here when they match the category criteria.</p>
+        `;
+    }
+    
+    return emptyDiv;
 }
 
 /**
@@ -294,14 +422,23 @@ function createFileItem(file) {
  * Get appropriate icon for file type
  */
 function getFileIcon(mimeType) {
-    if (mimeType.includes('pdf')) return '📄';
-    if (mimeType.includes('document')) return '📝';
-    if (mimeType.includes('spreadsheet')) return '📊';
-    if (mimeType.includes('presentation')) return '📽️';
-    if (mimeType.includes('video')) return '🎥';
-    if (mimeType.includes('image')) return '🖼️';
-    if (mimeType.includes('folder')) return '📁';
-    return '📄';
+    const iconClass = getFileIconClass(mimeType);
+    return `<div class="file-type-icon ${iconClass}"></div>`;
+}
+
+/**
+ * Get CSS class for file type icon
+ */
+function getFileIconClass(mimeType) {
+    if (mimeType.includes('pdf')) return 'icon-pdf';
+    if (mimeType.includes('document')) return 'icon-document';
+    if (mimeType.includes('spreadsheet')) return 'icon-spreadsheet';
+    if (mimeType.includes('presentation')) return 'icon-presentation';
+    if (mimeType.includes('video')) return 'icon-video';
+    if (mimeType.includes('image')) return 'icon-image';
+    if (mimeType.includes('folder')) return 'icon-folder';
+    if (mimeType.includes('text')) return 'icon-text';
+    return 'icon-file';
 }
 
 /**
@@ -416,7 +553,10 @@ function handleSearch() {
  */
 async function refreshFiles() {
     if (accessToken) {
+        showToast('Refreshing Files', 'Updating your training resources...', 'info', 2000);
         await loadDriveFiles();
+    } else {
+        showToast('Not Authenticated', 'Please sign in to refresh files', 'warning');
     }
 }
 
@@ -444,9 +584,6 @@ function updateFileCount() {
     if (fileCountBadge) {
         fileCountBadge.textContent = `${count} file${count !== 1 ? 's' : ''}`;
     }
-    if (totalFilesSpan) {
-        totalFilesSpan.textContent = allFiles.length;
-    }
 }
 
 /**
@@ -457,4 +594,85 @@ function clearFilesList() {
     categoriesList.innerHTML = '';
     allFiles = [];
     filteredFiles = [];
+}
+
+/**
+ * Toast Notification System
+ */
+function showToast(title, message, type = 'info', duration = 5000) {
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    
+    const iconMap = {
+        success: '✓',
+        error: '✕',
+        warning: '⚠',
+        info: 'i'
+    };
+    
+    toast.innerHTML = `
+        <div class="toast-icon">${iconMap[type] || 'i'}</div>
+        <div class="toast-content">
+            <div class="toast-title">${title}</div>
+            <div class="toast-message">${message}</div>
+        </div>
+        <button class="toast-close" aria-label="Close notification">×</button>
+        <div class="toast-progress" style="width: 100%;"></div>
+    `;
+    
+    const closeBtn = toast.querySelector('.toast-close');
+    const progressBar = toast.querySelector('.toast-progress');
+    
+    // Close button functionality
+    closeBtn.addEventListener('click', () => removeToast(toast));
+    
+    // Add to container
+    toastContainer.appendChild(toast);
+    
+    // Animate in
+    requestAnimationFrame(() => {
+        toast.classList.add('show');
+    });
+    
+    // Auto-remove after duration
+    if (duration > 0) {
+        // Animate progress bar
+        progressBar.style.transition = `width ${duration}ms linear`;
+        progressBar.style.width = '0%';
+        
+        setTimeout(() => {
+            removeToast(toast);
+        }, duration);
+    }
+    
+    // Limit number of toasts
+    const toasts = toastContainer.querySelectorAll('.toast');
+    if (toasts.length > 5) {
+        removeToast(toasts[0]);
+    }
+}
+
+function removeToast(toast) {
+    toast.classList.remove('show');
+    setTimeout(() => {
+        if (toast.parentNode) {
+            toast.parentNode.removeChild(toast);
+        }
+    }, 300);
+}
+
+// Enhanced status update with toast notifications
+function updateStatusWithToast(message, type = 'info', showToast = false, toastTitle = '') {
+    updateStatus(message, type);
+    
+    if (showToast) {
+        const title = toastTitle || {
+            success: 'Success',
+            error: 'Error',
+            warning: 'Warning',
+            info: 'Information'
+        }[type] || 'Notification';
+        
+        showToast(title, message, type);
+    }
 }

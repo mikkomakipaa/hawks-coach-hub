@@ -75,21 +75,12 @@
                     </div>
                     <div class="categories" id="categoriesList"></div>
                 </div>
-                
-                <div class="stats-card">
-                    <h3>Library Stats</h3>
-                    <div class="stat-item">
-                        <span class="stat-label">Total Files:</span>
-                        <span class="stat-value" id="totalFiles">0</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">Last Updated:</span>
-                        <span class="stat-value" id="lastUpdated">Never</span>
-                    </div>
-                </div>
             </div>
         </div>
     </main>
+
+    <!-- Toast Notification Container -->
+    <div class="toast-container" id="toastContainer"></div>
 
     <footer>
         <div class="footer-content">
@@ -97,14 +88,12 @@
                 <span>Hawks Helsinki Coach Hub</span>
             </div>
             <div class="footer-section">
-                <span>Auto-refresh every 15 minutes</span>
-            </div>
-            <div class="footer-section">
                 <span>Powered by Google Drive API</span>
             </div>
         </div>
     </footer>
 
+    <script src="env-loader.js"></script>
     <script src="https://apis.google.com/js/api.js" async defer onload="window.gapiLoaded = true"></script>
     <script src="https://accounts.google.com/gsi/client" async defer onload="window.gisLoaded = true"></script>
     <script src="script.js" defer></script>
