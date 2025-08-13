@@ -33,9 +33,9 @@ const folderChipsBar = document.getElementById('folderChipsBar');
 document.addEventListener('DOMContentLoaded', initializeApp);
 
 function initializeApp() {
-    console.log('Initializing Hawks Coach Hub...');
+    console.log('Alustetaan Hawks Valmennuskeskusta...');
     setupEventListeners();
-    updateStatus('Loading Google APIs...', 'loading');
+    updateStatus('Ladataan Google API:ja...', 'loading');
     
     // Reset initialization flags
     gapiInited = false;
@@ -49,7 +49,7 @@ function checkAPIsLoaded() {
     let attempts = 0;
     const maxAttempts = 60; // 30 seconds total
     
-    updateStatus('Loading Google APIs...', 'loading');
+    updateStatus('Ladataan Google API:ja...', 'loading');
     
     const checkInterval = setInterval(() => {
         attempts++;
@@ -66,9 +66,9 @@ function checkAPIsLoaded() {
             initializeGoogleAPIs();
         } else if (attempts >= maxAttempts) {
             clearInterval(checkInterval);
-            const errorMsg = 'Failed to load Google APIs after 30 seconds. Please check your internet connection and refresh the page.';
+            const errorMsg = 'Google API:jen lataaminen epäonnistui 30 sekunnin jälkeen. Tarkista internetyhteys ja päivitä sivu.';
             updateStatus(errorMsg, 'error');
-            showToast('Loading Timeout', errorMsg, 'error');
+            showToast('Latausaikakatkaisu', errorMsg, 'error');
         }
     }, 500);
 }
@@ -84,13 +84,13 @@ async function initializeGoogleAPIs() {
     try {
         // Check if credentials are properly configured
         if (CLIENT_ID === 'YOUR_GOOGLE_CLIENT_ID_HERE' || API_KEY === 'YOUR_GOOGLE_API_KEY_HERE') {
-            const credentialsMsg = 'Please configure your Google API credentials. See README.md for setup instructions.';
+            const credentialsMsg = 'Määritä Google API -tunnuksesi. Katso asennusohjeet README.md-tiedostosta.';
             updateStatus(credentialsMsg, 'error');
-            showToast('Configuration Required', credentialsMsg, 'warning', 0);
+            showToast('Määritys vaaditaan', credentialsMsg, 'warning', 0);
             return;
         }
         
-        updateStatus('Initializing Google Drive API...', 'loading');
+        updateStatus('Alustetaan Google Drive API...', 'loading');
         
         // Initialize GAPI client
         await new Promise((resolve, reject) => {
@@ -113,31 +113,31 @@ async function initializeGoogleAPIs() {
         
         // Validate API key format
         if (!API_KEY || API_KEY.length < 30 || !API_KEY.startsWith('AIza')) {
-            throw new Error('Invalid API key format. Please check your Google Cloud Console configuration.');
+            throw new Error('Virheellinen API-avain. Tarkista Google Cloud Console -määritykset.');
         }
         
         // Initialize without discovery docs (more reliable)
-        console.log('Initializing GAPI client without discovery docs...');
+        console.log('Alustetaan GAPI-asiakasta ilman discovery docs...');
         await gapi.client.init({
             apiKey: API_KEY,
         });
         
         // Load the Drive API manually
-        console.log('Loading Google Drive API v3...');
+        console.log('Ladataan Google Drive API v3...');
         await gapi.client.load('drive', 'v3');
         
-        console.log('GAPI client initialized successfully');
+        console.log('GAPI-asiakas alustettu onnistuneesti');
         gapiInited = true;
         
         // Initialize Google Identity Services
         if (typeof google === 'undefined' || !google.accounts) {
-            throw new Error('Google Identity Services not loaded');
+            throw new Error('Google Identity Services ei ladattu');
         }
         
-        console.log('Initializing token client with CLIENT_ID:', CLIENT_ID);
+        console.log('Alustetaan token-asiakasta CLIENT_ID:llä:', CLIENT_ID);
         
         if (!CLIENT_ID || CLIENT_ID === 'YOUR_GOOGLE_CLIENT_ID_HERE') {
-            throw new Error('CLIENT_ID not configured. Please set your Google Client ID.');
+            throw new Error('CLIENT_ID ei määritetty. Aseta Google Client ID.');
         }
         
         try {
@@ -147,35 +147,35 @@ async function initializeGoogleAPIs() {
                 callback: '', // defined later
             });
             
-            console.log('Google Identity Services initialized successfully');
+            console.log('Google Identity Services alustettu onnistuneesti');
             gisInited = true;
             
             // Enable sign-in button
             maybeEnableButtons();
         } catch (tokenError) {
             console.error('Error initializing token client:', tokenError);
-            throw new Error('Failed to initialize authentication client: ' + tokenError.message);
+            throw new Error('Todennusasiakkaan alustus epäonnistui: ' + tokenError.message);
         }
         
     } catch (error) {
         console.error('Error initializing Google APIs:', error);
-        const errorMsg = 'Failed to initialize Google APIs: ' + error.message;
+        const errorMsg = 'Google API:jen alustus epäonnistui: ' + error.message;
         updateStatus(errorMsg, 'error');
-        showToast('Initialization Failed', errorMsg, 'error');
+        showToast('Alustus epäonnistui', errorMsg, 'error');
         
         // Provide more specific error guidance
         if (error.message.includes('API key') || error.message.includes('Invalid')) {
-            const keyMsg = 'Invalid API key. Please check your Google Cloud Console configuration and ensure the API key is enabled for Google Drive API.';
+            const keyMsg = 'Virheellinen API-avain. Tarkista Google Cloud Console -määritykset ja varmista että API-avain on käytössä Google Drive API:lle.';
             updateStatus(keyMsg, 'error');
-            showToast('Configuration Error', keyMsg, 'error');
+            showToast('Määritysvirhe', keyMsg, 'error');
         } else if (error.message.includes('load') || error.message.includes('network') || error.message.includes('discovery')) {
-            const networkMsg = 'Network error loading Google APIs. Please check your internet connection and try refreshing.';
+            const networkMsg = 'Verkkovirhe Google API:jen latauksessa. Tarkista internetyhteys ja yritä päivittää sivua.';
             updateStatus(networkMsg, 'error');
-            showToast('Connection Issue', networkMsg, 'error');
+            showToast('Yhteysongelma', networkMsg, 'error');
         } else if (error.message.includes('CORS') || error.message.includes('origin')) {
-            const corsMsg = 'Domain not authorized. Please add your domain to authorized JavaScript origins in Google Cloud Console.';
+            const corsMsg = 'Verkkotunnus ei ole valtuutettu. Lisää verkkotunnuksesi valtuutettuihin JavaScript-alkuperäihin Google Cloud Consolessa.';
             updateStatus(corsMsg, 'error');
-            showToast('Authorization Error', corsMsg, 'error');
+            showToast('Valtuutusvirhe', corsMsg, 'error');
         }
     }
 }
@@ -187,8 +187,8 @@ function maybeEnableButtons() {
         console.log('Both APIs initialized - enabling sign-in button');
         document.getElementById('authorize_div').style.display = 'block';
         document.getElementById('signout_div').style.display = 'none';
-        updateStatus('Ready to sign in with Google Drive', 'info');
-        showToast('Ready to Sign In', 'Google APIs loaded successfully', 'success', 3000);
+        updateStatus('Valmis kirjautumaan Google Driveen', 'info');
+        showToast('Valmis kirjautumaan', 'Google API:t ladattu onnistuneesti', 'success', 3000);
     } else {
         console.log('APIs not ready yet:', { 
             gapiInited, 
@@ -196,67 +196,67 @@ function maybeEnableButtons() {
             gapiExists: typeof gapi !== 'undefined',
             googleExists: typeof google !== 'undefined'
         });
-        updateStatus('Initializing Google APIs...', 'loading');
+        updateStatus('Alustetaan Google API:ja...', 'loading');
     }
 }
 
 function handleAuthClick() {
-    console.log('Sign in button clicked');
+    console.log('Sisaankirjautumispainiketta painettu');
     
     if (!gapiInited || !gisInited) {
-        const errorMsg = 'Google APIs not fully initialized yet. Please wait or refresh the page.';
+        const errorMsg = 'Google API:ja ei ole vielä täysin alustettu. Odota tai päivitä sivu.';
         updateStatus(errorMsg, 'error');
-        showToast('Not Ready', errorMsg, 'warning');
+        showToast('Ei valmis', errorMsg, 'warning');
         return;
     }
     
     if (!tokenClient) {
-        const errorMsg = 'Authentication client not initialized. Please refresh the page.';
+        const errorMsg = 'Todennusasiakas ei ole alustettu. Päivitä sivu.';
         updateStatus(errorMsg, 'error');
-        showToast('Authentication Error', errorMsg, 'error');
+        showToast('Todennusvirhe', errorMsg, 'error');
         return;
     }
     
-    console.log('Starting authentication flow...');
-    updateStatus('Starting sign-in process...', 'loading');
+    console.log('Aloitetaan todennusprosessi...');
+    updateStatus('Aloitetaan kirjautumisprosessi...', 'loading');
     
     tokenClient.callback = async (resp) => {
         console.log('Authentication response received:', resp);
         
         if (resp.error !== undefined) {
             console.error('Authentication error:', resp.error);
-            const errorMsg = 'Authorization failed: ' + resp.error;
+            const errorMsg = 'Valtuutus epäonnistui: ' + resp.error;
             updateStatus(errorMsg, 'error');
-            showToast('Authentication Failed', errorMsg, 'error');
+            showToast('Todennus epäonnistui', errorMsg, 'error');
             return;
         }
         
-        console.log('Authentication successful, loading files...');
+        console.log('Todennus onnistui, ladataan tiedostoja...');
         accessToken = resp.access_token;
         document.getElementById('signout_div').style.display = 'block';
         document.getElementById('authorize_div').style.display = 'none';
-        showToast('Authentication Successful', 'Successfully connected to Google Drive', 'success');
+        showToast('Todennus onnistui', 'Yhteys Google Driveen muodostettu', 'success');
         
         try {
             await loadDriveFiles();
         } catch (error) {
             console.error('Error loading files after authentication:', error);
-            updateStatus('Authentication successful but failed to load files: ' + error.message, 'error');
+            updateStatus('Todennus onnistui mutta tiedostojen lataus epäonnistui: ' + error.message, 'error');
         }
     };
 
     try {
         if (gapi.client.getToken() === null) {
-            console.log('No existing token, requesting new access token with consent');
+            console.log('Ei olemassa olevaa tokenia, pyydetään uutta pääsyjä');
             tokenClient.requestAccessToken({prompt: 'consent'});
         } else {
-            console.log('Existing token found, requesting access token');
+            console.log('Olemassa oleva token löytyi, pyydetään pääsyjä');
             tokenClient.requestAccessToken({prompt: ''});
         }
     } catch (error) {
         console.error('Error requesting access token:', error);
-        updateStatus('Error starting authentication: ' + error.message, 'error');
-        showToast('Authentication Error', 'Failed to start sign-in process', 'error');
+        updateStatus('Virhe todennuksen aloituksessa: ' + error.message, 'error');
+        showToast('Todennusvirhe', 'Sisaankirjautumisprosessin aloitus epäonnistui', 'error');
     }
 }
 
@@ -270,13 +270,13 @@ function handleSignoutClick() {
     document.getElementById('signout_div').style.display = 'none';
     document.getElementById('authorize_div').style.display = 'block';
     clearFilesList();
-    updateStatus('Signed out', 'info');
-    showToast('Signed Out', 'Successfully disconnected from Google Drive', 'info');
+    updateStatus('Kirjauduttu ulos', 'info');
+    showToast('Kirjauduttu ulos', 'Yhteys Google Driveen katkaistiin', 'info');
 }
 
 async function loadDriveFiles() {
-    updateStatus('Loading files from Google Drive...', 'loading');
-    showToast('Loading Files', 'Fetching your training resources...', 'info', 2000);
+    updateStatus('Ladataan tiedostoja Google Drivesta...', 'loading');
+    showToast('Ladataan tiedostoja', 'Haetaan harjoitusmateriaaleja...', 'info', 2000);
     
     try {
         // Load both files and folders
@@ -322,17 +322,17 @@ async function loadDriveFiles() {
         updateFileCount();
         
         if (allFiles.length === 0) {
-            updateStatus('No files found', 'info');
-            showToast('No Files Found', 'No training resources found in your Google Drive', 'info');
+            updateStatus('Tiedostoja ei löytynyt', 'info');
+            showToast('Tiedostoja ei löytynyt', 'Google Drivestasi ei löytynyt harjoitusmateriaaleja', 'info');
         } else {
-            updateStatus(`Successfully loaded ${allFiles.length} training resources`, 'success');
-            showToast('Files Loaded', `Found ${allFiles.length} training resources`, 'success');
+            updateStatus(`Ladattiin onnistuneesti ${allFiles.length} harjoitusmateriaalia`, 'success');
+            showToast('Tiedostot ladattu', `Löydettiin ${allFiles.length} harjoitusmateriaalia`, 'success');
         }
     } catch (error) {
         console.error('Error loading files:', error);
-        const errorMsg = 'Error loading files: ' + error.message;
+        const errorMsg = 'Virhe tiedostojen latauksessa: ' + error.message;
         updateStatus(errorMsg, 'error');
-        showToast('Loading Failed', errorMsg, 'error');
+        showToast('Lataus epäonnistui', errorMsg, 'error');
     }
 }
 
@@ -359,23 +359,23 @@ function createEmptyState(isSearching) {
     if (isSearching) {
         emptyDiv.innerHTML = `
             <div class="empty-icon">🔍</div>
-            <h3>No files found</h3>
-            <p>Try adjusting your search terms.</p>
+            <h3>Tiedostoja ei löytynyt</h3>
+            <p>Kokeile muuttaa hakuehtoja.</p>
             <button class="empty-action" onclick="searchInput.value=''; handleSearch();">
-                Clear Search
+                Tyhjennä haku
             </button>
         `;
     } else if (allFiles.length === 0) {
         emptyDiv.innerHTML = `
             <div class="empty-icon">📁</div>
-            <h3>Welcome to Hawks Coach Hub</h3>
-            <p>Sign in with Google Drive to access your training resources.</p>
+            <h3>Tervetuloa Hawks Valmennuskeskukseen</h3>
+            <p>Kirjaudu Google Drivellä käyttääksesi harjoitusmateriaaleja.</p>
         `;
     } else {
         emptyDiv.innerHTML = `
             <div class="empty-icon">📋</div>
-            <h3>No files in this view</h3>
-            <p>Try a different search or check your filters.</p>
+            <h3>Ei tiedostoja tässä näkymässä</h3>
+            <p>Kokeile eri hakua tai tarkista suodattimesi.</p>
         `;
     }
     
@@ -395,7 +395,7 @@ function createFileItem(file) {
             <a href="${file.webViewLink}" target="_blank" rel="noopener noreferrer" class="file-name">
                 ${file.name}
             </a>
-            <div class="file-date">Modified: ${modifiedDate}</div>
+            <div class="file-date">Muokattu: ${modifiedDate}</div>
         </div>
     `;
     
@@ -450,8 +450,8 @@ async function refreshFiles() {
     });
     
     if (!gapiInited || !gisInited) {
-        showToast('Reinitializing', 'Attempting to reload Google APIs...', 'info', 3000);
-        updateStatus('Reinitializing Google APIs...', 'loading');
+        showToast('Uudelleenalustetaan', 'Yritetään ladata Google API:t uudelleen...', 'info', 3000);
+        updateStatus('Uudelleenalustetaan Google API:ja...', 'loading');
         
         gapiInited = false;
         gisInited = false;
@@ -462,8 +462,8 @@ async function refreshFiles() {
     if (accessToken) {
         await loadDriveFiles();
     } else {
-        showToast('Not Authenticated', 'Please sign in to refresh files', 'warning');
-        updateStatus('Please sign in to access your files', 'info');
+        showToast('Ei kirjauduttu', 'Kirjaudu sisään päivittääksesi tiedostot', 'warning');
+        updateStatus('Kirjaudu sisään käyttääksesi tiedostojasi', 'info');
     }
 }
 
@@ -482,9 +482,9 @@ function updateFileCount() {
     const count = filteredFiles.length;
     if (fileCountBadge) {
         if (count === 0 && allFiles.length === 0) {
-            fileCountBadge.textContent = 'No files found';
+            fileCountBadge.textContent = 'Tiedostoja ei löytynyt';
         } else {
-            fileCountBadge.textContent = `${count} of ${allFiles.length} files`;
+            fileCountBadge.textContent = `${count}/${allFiles.length} tiedostoa`;
         }
     }
 }
@@ -571,7 +571,7 @@ function cacheFolderStructure() {
         });
     });
     
-    console.log(`Cached ${folderCache.size} folders with file counts`);
+    console.log(`Välimuistiin tallennettu ${folderCache.size} kansiota tiedostomäärineen`);
 }
 
 function displayFolderNavigation() {
@@ -586,7 +586,7 @@ function displayFolderNavigation() {
         // Add "All Files" chip
         const allFilesChip = createFolderChip({
             id: 'all',
-            name: 'All Files',
+            name: 'Kaikki tiedostot',
             fileCount: allFiles.length,
             isAllFiles: true
         });
@@ -665,7 +665,7 @@ function filterByFolder(folderId, folderName) {
         }
         
         filteredFiles = folderFiles;
-        updateStatus(`Viewing folder: ${folderName} (${filteredFiles.length} files)`, 'info');
+        updateStatus(`Katsotaan kansiota: ${folderName} (${filteredFiles.length} tiedostoa)`, 'info');
     } else {
         // Show all files
         const searchTerm = searchInput.value.toLowerCase().trim();
@@ -677,7 +677,7 @@ function filterByFolder(folderId, folderName) {
             filteredFiles = [...allFiles];
         }
         
-        updateStatus(`Viewing all files (${filteredFiles.length} total)`, 'info');
+        updateStatus(`Katsotaan kaikkia tiedostoja (yhteensä ${filteredFiles.length})`, 'info');
     }
     
     displayFiles();
