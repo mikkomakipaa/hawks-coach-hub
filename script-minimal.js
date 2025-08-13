@@ -1,6 +1,12 @@
 // Configuration - Set these via environment variables or env-loader.js
 const CLIENT_ID = window.GOOGLE_CLIENT_ID || 'YOUR_GOOGLE_CLIENT_ID_HERE';
 const API_KEY = window.GOOGLE_API_KEY || 'YOUR_GOOGLE_API_KEY_HERE';
+
+// Debug: Log what credentials were loaded
+console.log('Script loaded - CLIENT_ID:', CLIENT_ID);
+console.log('Script loaded - API_KEY:', API_KEY ? 'Present' : 'Missing');
+console.log('From window object - CLIENT_ID:', window.GOOGLE_CLIENT_ID);
+console.log('From window object - API_KEY:', window.GOOGLE_API_KEY ? 'Present' : 'Missing');
 const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest';
 const SCOPES = 'https://www.googleapis.com/auth/drive.metadata.readonly';
 
