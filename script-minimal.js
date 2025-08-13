@@ -86,6 +86,14 @@ function checkAPIsLoaded() {
             const errorMsg = 'Google API:jen lataaminen epäonnistui 30 sekunnin jälkeen. Tarkista internetyhteys ja päivitä sivu.';
             updateStatus(errorMsg, 'error');
             showToast('Latausaikakatkaisu', errorMsg, 'error');
+            
+            // Debug: Log what's missing
+            console.error('API loading failed. Status:', {
+                gapi: typeof gapi !== 'undefined',
+                google: typeof google !== 'undefined', 
+                accounts: typeof google !== 'undefined' && google.accounts,
+                domain: window.location.hostname
+            });
         }
     }, 500);
 }
