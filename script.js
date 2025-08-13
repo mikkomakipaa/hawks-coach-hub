@@ -28,7 +28,12 @@ const refreshButton = document.getElementById('refreshButton');
 const allFilesList = document.getElementById('allFilesList');
 const categoriesList = document.getElementById('categoriesList');
 const fileCountBadge = document.getElementById('fileCount');
-const toastContainer = document.getElementById('toastContainer');\nconst folderChips = document.getElementById('folderChips');\nconst mainSectionTitle = document.getElementById('mainSectionTitle');\nconst totalFilesEl = document.getElementById('totalFiles');\nconst totalFoldersEl = document.getElementById('totalFolders');\nconst currentViewCountEl = document.getElementById('currentViewCount');
+const toastContainer = document.getElementById('toastContainer');
+const folderChips = document.getElementById('folderChips');
+const mainSectionTitle = document.getElementById('mainSectionTitle');
+const totalFilesEl = document.getElementById('totalFiles');
+const totalFoldersEl = document.getElementById('totalFolders');
+const currentViewCountEl = document.getElementById('currentViewCount');
 
 // Initialize when page loads
 document.addEventListener('DOMContentLoaded', initializeApp);
@@ -319,31 +324,32 @@ function handleSignoutClick() {
 }
 
 /**
- * Load files from Google Drive
+ * Load files from Google Drive (including all subfolders)
  */
 async function loadDriveFiles() {
     updateStatus('Loading files from Google Drive...', 'loading');
     showSkeletonLoading();
     
     try {
-        // Load both files and folders
-        const [filesResponse, foldersResponse] = await Promise.all([
-            gapi.client.drive.files.list({
-                pageSize: 1000,
-                fields: 'nextPageToken, files(id, name, mimeType, modifiedTime, webViewLink, parents)',
-                orderBy: 'name',
-                q: "mimeType != 'application/vnd.google-apps.folder'"
-            }),
-            gapi.client.drive.files.list({
-                pageSize: 500,
-                fields: 'nextPageToken, files(id, name, mimeType, webViewLink, parents)',
-                orderBy: 'name',
-                q: "mimeType = 'application/vnd.google-apps.folder'"
-            })
-        ]);
+        // Load all folders first
+        const foldersResponse = await gapi.client.drive.files.list({
+            pageSize: 1000,
+            fields: 'nextPageToken, files(id, name, mimeType, webViewLink, parents)',
+            orderBy: 'name',
+            q: "mimeType = 'application/vnd.google-apps.folder'"
+        });
+
+        const folders = foldersResponse.result.files || [];
+        
+        // Load all files (this will get files from all folders including subfolders)
+        const filesResponse = await gapi.client.drive.files.list({
+            pageSize: 1000,
+            fields: 'nextPageToken, files(id, name, mimeType, modifiedTime, webViewLink, parents)',
+            orderBy: 'name',
+            q: "mimeType != 'application/vnd.google-apps.folder'"
+        });
 
         const files = filesResponse.result.files;
-        const folders = foldersResponse.result.files;
         
         if (files && files.length > 0) {
             allFiles = files.filter(file => 
@@ -377,8 +383,8 @@ async function loadDriveFiles() {
             showToast('No Content Found', 'No training resources found in your Google Drive', 'info');
         } else {
             const totalItems = allFiles.length + allFolders.length;
-            updateStatus(`Successfully loaded ${allFiles.length} files and ${allFolders.length} folders`, 'success');
-            showToast('Content Loaded', `Found ${allFiles.length} files and ${allFolders.length} folders`, 'success');
+            updateStatus(`Successfully loaded ${allFiles.length} files (from all folders) and ${allFolders.length} folders`, 'success');
+            showToast('Content Loaded', `Found ${allFiles.length} files from all subfolders and ${allFolders.length} folders`, 'success');
         }
     } catch (error) {
         console.error('Error loading files:', error);
@@ -716,25 +722,62 @@ function updateFileCount() {
 }
 
 /**
- * Cache folder structure for performance
+ * Cache folder structure for performance (now includes files from all subfolders)
  */
 function cacheFolderStructure() {
     folderCache.clear();
     
     allFolders.forEach(folder => {
-        // Count files in each folder
-        const filesInFolder = allFiles.filter(file => 
+        // Get files directly in this folder
+        const directFiles = allFiles.filter(file => 
             file.parents && file.parents.includes(folder.id)
+        );
+        
+        // Get all subfolder IDs for this folder recursively
+        const subfolderIds = getSubfolderIds(folder.id);
+        
+        // Get files from all subfolders
+        const subfolderFiles = allFiles.filter(file =>
+            file.parents && file.parents.some(parentId => subfolderIds.includes(parentId))
+        );
+        
+        // Combine direct files and subfolder files
+        const allFolderFiles = [...directFiles, ...subfolderFiles];
+        
+        // Remove duplicates (in case a file has multiple parents)
+        const uniqueFiles = allFolderFiles.filter((file, index, array) =>
+            array.findIndex(f => f.id === file.id) === index
         );
         
         folderCache.set(folder.id, {
             ...folder,
-            fileCount: filesInFolder.length,
-            files: filesInFolder
+            fileCount: uniqueFiles.length,
+            files: uniqueFiles
         });
     });
     
-    console.log(`Cached ${folderCache.size} folders with file counts`);
+    console.log(`Cached ${folderCache.size} folders with file counts (including subfolders)`);
+}
+
+/**
+ * Get all subfolder IDs recursively for a given folder
+ */
+function getSubfolderIds(folderId) {
+    const subfolderIds = [];
+    
+    // Find direct subfolders
+    const directSubfolders = allFolders.filter(folder =>
+        folder.parents && folder.parents.includes(folderId)
+    );
+    
+    directSubfolders.forEach(subfolder => {
+        subfolderIds.push(subfolder.id);
+        // Recursively get subfolders of this subfolder
+        const nestedSubfolders = getSubfolderIds(subfolder.id);
+        subfolderIds.push(...nestedSubfolders);
+    });
+    
+    return subfolderIds;
 }
 
 /**
