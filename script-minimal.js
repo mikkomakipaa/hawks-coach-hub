@@ -4,6 +4,9 @@ const API_KEY = window.GOOGLE_API_KEY || 'YOUR_GOOGLE_API_KEY_HERE';
 const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest';
 const SCOPES = 'https://www.googleapis.com/auth/drive.metadata.readonly';
 
+// Source folder configuration
+const SOURCE_FOLDER_ID = '1OEK4hCI6XzbS548UB4Rxd0OxlubsPADg';
+
 // Global variables
 let tokenClient;
 let gapiInited = false;
@@ -279,27 +282,55 @@ async function loadDriveFiles() {
     showToast('Ladataan tiedostoja', 'Haetaan harjoitusmateriaaleja...', 'info', 2000);
     
     try {
-        // Load both files and folders
-        const [filesResponse, foldersResponse] = await Promise.all([
+        // Load files from the source folder and its subfolders
+        const [filesResponse, foldersResponse, allFoldersResponse] = await Promise.all([
             gapi.client.drive.files.list({
                 pageSize: 1000,
                 fields: 'nextPageToken, files(id, name, mimeType, modifiedTime, webViewLink, parents)',
                 orderBy: 'name',
-                q: "mimeType != 'application/vnd.google-apps.folder'"
+                q: `"${SOURCE_FOLDER_ID}" in parents and mimeType != 'application/vnd.google-apps.folder'`
             }),
             gapi.client.drive.files.list({
                 pageSize: 500,
+                fields: 'nextPageToken, files(id, name, mimeType, webViewLink, parents)',
+                orderBy: 'name',
+                q: `"${SOURCE_FOLDER_ID}" in parents and mimeType = 'application/vnd.google-apps.folder'`
+            }),
+            // Also get all subfolders to find files in them
+            gapi.client.drive.files.list({
+                pageSize: 1000,
                 fields: 'nextPageToken, files(id, name, mimeType, webViewLink, parents)',
                 orderBy: 'name',
                 q: "mimeType = 'application/vnd.google-apps.folder'"
             })
         ]);
 
-        const files = filesResponse.result.files;
-        const folders = foldersResponse.result.files;
+        const files = filesResponse.result.files || [];
+        const subfolders = foldersResponse.result.files || [];
+        const allFoldersForSearch = allFoldersResponse.result.files || [];
         
-        if (files && files.length > 0) {
-            allFiles = files.filter(file => 
+        // Find all files in subfolders of the source folder
+        let allSubfolderFiles = [];
+        if (subfolders.length > 0) {
+            const subfolderFilePromises = subfolders.map(folder => 
+                gapi.client.drive.files.list({
+                    pageSize: 1000,
+                    fields: 'nextPageToken, files(id, name, mimeType, modifiedTime, webViewLink, parents)',
+                    orderBy: 'name',
+                    q: `"${folder.id}" in parents and mimeType != 'application/vnd.google-apps.folder'`
+                })
+            );
+            
+            const subfolderResponses = await Promise.all(subfolderFilePromises);
+            allSubfolderFiles = subfolderResponses.flatMap(response => response.result.files || []);
+        }
+        
+        // Combine all files
+        const allFoundFiles = [...files, ...allSubfolderFiles];
+        const folders = subfolders;
+        
+        if (allFoundFiles && allFoundFiles.length > 0) {
+            allFiles = allFoundFiles.filter(file => 
                 !file.name.startsWith('.') && 
                 file.mimeType !== 'application/vnd.google-apps.script'
             );
@@ -322,10 +353,10 @@ async function loadDriveFiles() {
         updateFileCount();
         
         if (allFiles.length === 0) {
-            updateStatus('Tiedostoja ei löytynyt', 'info');
-            showToast('Tiedostoja ei löytynyt', 'Google Drivestasi ei löytynyt harjoitusmateriaaleja', 'info');
+            updateStatus('Tiedostoja ei löytynyt valitusta kansiosta', 'info');
+            showToast('Tiedostoja ei löytynyt', 'Valitusta kansiosta ei löytynyt harjoitusmateriaaleja', 'info');
         } else {
-            updateStatus(`Ladattiin onnistuneesti ${allFiles.length} harjoitusmateriaalia`, 'success');
+            updateStatus(`Ladattiin onnistuneesti ${allFiles.length} harjoitusmateriaalia valitusta kansiosta`, 'success');
             showToast('Tiedostot ladattu', `Löydettiin ${allFiles.length} harjoitusmateriaalia`, 'success');
         }
     } catch (error) {
@@ -592,12 +623,12 @@ function displayFolderNavigation() {
         });
         folderChips.appendChild(allFilesChip);
         
-        // Sort folders by file count and show only top-level folders with files
+        // Sort folders by file count and show subfolders from the source folder
         const sortedFolders = Array.from(folderCache.values())
             .filter(folder => {
-                // Only show top-level folders (no parents) that contain files
-                const isTopLevel = !folder.parents || folder.parents.length === 0 || folder.parents[0] === 'root';
-                return folder.fileCount > 0 && isTopLevel;
+                // Show subfolders of the source folder that contain files
+                const isSourceSubfolder = folder.parents && folder.parents.includes(SOURCE_FOLDER_ID);
+                return folder.fileCount > 0 && isSourceSubfolder;
             })
             .sort((a, b) => {
                 if (a.fileCount !== b.fileCount) {
@@ -605,7 +636,7 @@ function displayFolderNavigation() {
                 }
                 return a.name.localeCompare(b.name);
             })
-            .slice(0, 6); // Show max 6 folder chips
+            .slice(0, 8); // Show max 8 folder chips for better coverage
         
         sortedFolders.forEach(folder => {
             const folderChip = createFolderChip(folder);
