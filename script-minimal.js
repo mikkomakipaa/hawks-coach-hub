@@ -4,8 +4,7 @@ const API_KEY = window.GOOGLE_API_KEY || 'YOUR_GOOGLE_API_KEY_HERE';
 const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest';
 const SCOPES = 'https://www.googleapis.com/auth/drive.metadata.readonly';
 
-// Source folder configuration
-const SOURCE_FOLDER_ID = '1OEK4hCI6XzbS548UB4Rxd0OxlubsPADg';
+// Note: Now loading all folders from entire Google Drive
 
 // Global variables
 let tokenClient;
@@ -346,35 +345,19 @@ async function loadDriveFiles() {
     showToast('Ladataan tiedostoja', 'Haetaan harjoitusmateriaaleja...', 'info', 2000);
     
     try {
-        // Load all files and folders from the source folder with pagination
-        console.log(`Loading files from source folder: ${SOURCE_FOLDER_ID}`);
+        // Load all files and all folders from the entire Drive with pagination
+        console.log('Loading all files and folders from Google Drive');
         
-        const [files, subfolders] = await Promise.all([
-            getAllFilesWithPagination(`"${SOURCE_FOLDER_ID}" in parents and mimeType != 'application/vnd.google-apps.folder'`),
-            getAllFilesWithPagination(`"${SOURCE_FOLDER_ID}" in parents and mimeType = 'application/vnd.google-apps.folder'`)
+        const [allFiles, allFolders] = await Promise.all([
+            getAllFilesWithPagination(`mimeType != 'application/vnd.google-apps.folder'`),
+            getAllFilesWithPagination(`mimeType = 'application/vnd.google-apps.folder'`)
         ]);
         
-        console.log(`Found ${files.length} files and ${subfolders.length} subfolders in source folder`);
+        console.log(`Found ${allFiles.length} total files and ${allFolders.length} total folders in Drive`);
         
-        // Find all files in subfolders of the source folder
-        let allSubfolderFiles = [];
-        if (subfolders.length > 0) {
-            console.log(`Loading files from ${subfolders.length} subfolders...`);
-            
-            const subfolderFilePromises = subfolders.map(async (folder) => {
-                const files = await getAllFilesWithPagination(`"${folder.id}" in parents and mimeType != 'application/vnd.google-apps.folder'`);
-                console.log(`Subfolder "${folder.name}" contains ${files.length} files`);
-                return files;
-            });
-            
-            const subfolderFileArrays = await Promise.all(subfolderFilePromises);
-            allSubfolderFiles = subfolderFileArrays.flat();
-            console.log(`Total files in subfolders: ${allSubfolderFiles.length}`);
-        }
-        
-        // Combine all files
-        const allFoundFiles = [...files, ...allSubfolderFiles];
-        const folders = subfolders;
+        // Combine all files and folders
+        const allFoundFiles = allFiles;
+        const folders = allFolders;
         
         console.log(`Total files found: ${allFoundFiles.length}`);
         
@@ -402,10 +385,10 @@ async function loadDriveFiles() {
         updateFileCount();
         
         if (allFiles.length === 0) {
-            updateStatus('Tiedostoja ei löytynyt valitusta kansiosta', 'info');
-            showToast('Tiedostoja ei löytynyt', 'Valitusta kansiosta ei löytynyt harjoitusmateriaaleja', 'info');
+            updateStatus('Tiedostoja ei löytynyt', 'info');
+            showToast('Tiedostoja ei löytynyt', 'Google Drivestasi ei löytynyt harjoitusmateriaaleja', 'info');
         } else {
-            updateStatus(`Ladattiin onnistuneesti ${allFiles.length} harjoitusmateriaalia valitusta kansiosta`, 'success');
+            updateStatus(`Ladattiin onnistuneesti ${allFiles.length} harjoitusmateriaalia`, 'success');
             showToast('Tiedostot ladattu', `Löydettiin ${allFiles.length} harjoitusmateriaalia`, 'success');
         }
     } catch (error) {
@@ -672,12 +655,11 @@ function displayFolderNavigation() {
         });
         folderChips.appendChild(allFilesChip);
         
-        // Sort folders by file count and show subfolders from the source folder
+        // Sort folders by file count and show all folders that contain files
         const sortedFolders = Array.from(folderCache.values())
             .filter(folder => {
-                // Show subfolders of the source folder that contain files
-                const isSourceSubfolder = folder.parents && folder.parents.includes(SOURCE_FOLDER_ID);
-                return folder.fileCount > 0 && isSourceSubfolder;
+                // Show all folders that contain files
+                return folder.fileCount > 0;
             })
             .sort((a, b) => {
                 if (a.fileCount !== b.fileCount) {
