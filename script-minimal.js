@@ -592,9 +592,13 @@ function displayFolderNavigation() {
         });
         folderChips.appendChild(allFilesChip);
         
-        // Sort folders by file count and show only those with files
+        // Sort folders by file count and show only top-level folders with files
         const sortedFolders = Array.from(folderCache.values())
-            .filter(folder => folder.fileCount > 0)
+            .filter(folder => {
+                // Only show top-level folders (no parents) that contain files
+                const isTopLevel = !folder.parents || folder.parents.length === 0 || folder.parents[0] === 'root';
+                return folder.fileCount > 0 && isTopLevel;
+            })
             .sort((a, b) => {
                 if (a.fileCount !== b.fileCount) {
                     return b.fileCount - a.fileCount;
