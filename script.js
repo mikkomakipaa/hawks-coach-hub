@@ -12,6 +12,9 @@ let gisInited = false;
 let accessToken = '';
 let allFiles = [];
 let filteredFiles = [];
+let allFolders = [];
+let folderCache = new Map(); // Cache folder contents
+let currentFolderFilter = null; // Currently selected folder filter
 
 // DOM elements
 const authorizeDiv = document.getElementById('authorize_div');
@@ -34,9 +37,14 @@ document.addEventListener('DOMContentLoaded', initializeApp);
  * Initialize the application
  */
 function initializeApp() {
+    console.log('Initializing Hawks Coach Hub...');
     setupEventListeners();
     setupAutoRefresh();
     updateStatus('Loading Google APIs...', 'loading');
+    
+    // Reset initialization flags
+    gapiInited = false;
+    gisInited = false;
     
     // Wait for APIs to load
     checkAPIsLoaded();
@@ -161,17 +169,28 @@ async function initializeGoogleAPIs() {
             throw new Error('Google Identity Services not loaded');
         }
         
-        tokenClient = google.accounts.oauth2.initTokenClient({
-            client_id: CLIENT_ID,
-            scope: SCOPES,
-            callback: '', // defined later
-        });
+        console.log('Initializing token client with CLIENT_ID:', CLIENT_ID);
         
-        console.log('Google Identity Services initialized successfully');
-        gisInited = true;
+        if (!CLIENT_ID || CLIENT_ID === 'YOUR_GOOGLE_CLIENT_ID_HERE') {
+            throw new Error('CLIENT_ID not configured. Please set your Google Client ID.');
+        }
         
-        // Enable sign-in button
-        maybeEnableButtons();
+        try {
+            tokenClient = google.accounts.oauth2.initTokenClient({
+                client_id: CLIENT_ID,
+                scope: SCOPES,
+                callback: '', // defined later
+            });
+            
+            console.log('Google Identity Services initialized successfully');
+            gisInited = true;
+            
+            // Enable sign-in button
+            maybeEnableButtons();
+        } catch (tokenError) {
+            console.error('Error initializing token client:', tokenError);
+            throw new Error('Failed to initialize authentication client: ' + tokenError.message);
+        }
         
     } catch (error) {
         console.error('Error initializing Google APIs:', error);
@@ -200,9 +219,22 @@ async function initializeGoogleAPIs() {
  * Enable buttons after both APIs are loaded
  */
 function maybeEnableButtons() {
+    console.log('Checking if APIs are ready:', { gapiInited, gisInited });
+    
     if (gapiInited && gisInited) {
+        console.log('Both APIs initialized - enabling sign-in button');
         document.getElementById('authorize_div').style.display = 'block';
+        document.getElementById('signout_div').style.display = 'none';
         updateStatus('Ready to sign in with Google Drive', 'info');
+        showToast('Ready to Sign In', 'Google APIs loaded successfully', 'success', 3000);
+    } else {
+        console.log('APIs not ready yet:', { 
+            gapiInited, 
+            gisInited,
+            gapiExists: typeof gapi !== 'undefined',
+            googleExists: typeof google !== 'undefined'
+        });
+        updateStatus('Initializing Google APIs...', 'loading');
     }
 }
 
@@ -210,24 +242,62 @@ function maybeEnableButtons() {
  * Handle authorization
  */
 function handleAuthClick() {
+    console.log('Sign in button clicked');
+    
+    if (!gapiInited || !gisInited) {
+        const errorMsg = 'Google APIs not fully initialized yet. Please wait or refresh the page.';
+        updateStatus(errorMsg, 'error');
+        showToast('Not Ready', errorMsg, 'warning');
+        return;
+    }
+    
+    if (!tokenClient) {
+        const errorMsg = 'Authentication client not initialized. Please refresh the page.';
+        updateStatus(errorMsg, 'error');
+        showToast('Authentication Error', errorMsg, 'error');
+        return;
+    }
+    
+    console.log('Starting authentication flow...');
+    updateStatus('Starting sign-in process...', 'loading');
+    
     tokenClient.callback = async (resp) => {
+        console.log('Authentication response received:', resp);
+        
         if (resp.error !== undefined) {
+            console.error('Authentication error:', resp.error);
             const errorMsg = 'Authorization failed: ' + resp.error;
             updateStatus(errorMsg, 'error');
             showToast('Authentication Failed', errorMsg, 'error');
-            throw (resp);
+            return;
         }
+        
+        console.log('Authentication successful, loading files...');
         accessToken = resp.access_token;
         document.getElementById('signout_div').style.display = 'block';
         document.getElementById('authorize_div').style.display = 'none';
         showToast('Authentication Successful', 'Successfully connected to Google Drive', 'success');
-        await loadDriveFiles();
+        
+        try {
+            await loadDriveFiles();
+        } catch (error) {
+            console.error('Error loading files after authentication:', error);
+            updateStatus('Authentication successful but failed to load files: ' + error.message, 'error');
+        }
     };
 
-    if (gapi.client.getToken() === null) {
-        tokenClient.requestAccessToken({prompt: 'consent'});
-    } else {
-        tokenClient.requestAccessToken({prompt: ''});
+    try {
+        if (gapi.client.getToken() === null) {
+            console.log('No existing token, requesting new access token with consent');
+            tokenClient.requestAccessToken({prompt: 'consent'});
+        } else {
+            console.log('Existing token found, requesting access token');
+            tokenClient.requestAccessToken({prompt: ''});
+        }
+    } catch (error) {
+        console.error('Error requesting access token:', error);
+        updateStatus('Error starting authentication: ' + error.message, 'error');
+        showToast('Authentication Error', 'Failed to start sign-in process', 'error');
     }
 }
 
@@ -256,13 +326,25 @@ async function loadDriveFiles() {
     showSkeletonLoading();
     
     try {
-        const response = await gapi.client.drive.files.list({
-            pageSize: 1000,
-            fields: 'nextPageToken, files(id, name, mimeType, modifiedTime, webViewLink, parents)',
-            orderBy: 'name'
-        });
+        // Load both files and folders
+        const [filesResponse, foldersResponse] = await Promise.all([
+            gapi.client.drive.files.list({
+                pageSize: 1000,
+                fields: 'nextPageToken, files(id, name, mimeType, modifiedTime, webViewLink, parents)',
+                orderBy: 'name',
+                q: "mimeType != 'application/vnd.google-apps.folder'"
+            }),
+            gapi.client.drive.files.list({
+                pageSize: 500,
+                fields: 'nextPageToken, files(id, name, mimeType, webViewLink, parents)',
+                orderBy: 'name',
+                q: "mimeType = 'application/vnd.google-apps.folder'"
+            })
+        ]);
 
-        const files = response.result.files;
+        const files = filesResponse.result.files;
+        const folders = foldersResponse.result.files;
+        
         if (files && files.length > 0) {
             allFiles = files.filter(file => 
                 // Filter out Google Apps Script and other system files
@@ -271,16 +353,32 @@ async function loadDriveFiles() {
             );
             
             filteredFiles = [...allFiles];
-            hideSkeletonLoading();
-            displayFiles();
-            displayCategories();
-            updateFileCount();
-            updateStatus(`Successfully loaded ${allFiles.length} training resources`, 'success');
-            showToast('Files Loaded', `Found ${allFiles.length} training resources`, 'success');
         } else {
-            hideSkeletonLoading();
-            updateStatus('No files found', 'info');
-            showToast('No Files Found', 'No training resources found in your Google Drive', 'info');
+            allFiles = [];
+            filteredFiles = [];
+        }
+        
+        if (folders && folders.length > 0) {
+            allFolders = folders.filter(folder => !folder.name.startsWith('.'));
+            // Cache folder structure
+            cacheFolderStructure();
+        } else {
+            allFolders = [];
+        }
+        
+        hideSkeletonLoading();
+        displayFiles();
+        displayCategories();
+        displayFolderNavigation();
+        updateFileCount();
+        
+        if (allFiles.length === 0 && allFolders.length === 0) {
+            updateStatus('No files or folders found', 'info');
+            showToast('No Content Found', 'No training resources found in your Google Drive', 'info');
+        } else {
+            const totalItems = allFiles.length + allFolders.length;
+            updateStatus(`Successfully loaded ${allFiles.length} files and ${allFolders.length} folders`, 'success');
+            showToast('Content Loaded', `Found ${allFiles.length} files and ${allFolders.length} folders`, 'success');
         }
     } catch (error) {
         console.error('Error loading files:', error);
@@ -554,37 +652,40 @@ function createCategorySection(categoryName, files) {
  * Handle search functionality
  */
 function handleSearch() {
-    const searchTerm = searchInput.value.toLowerCase().trim();
-    
-    if (searchTerm === '') {
-        filteredFiles = [...allFiles];
-    } else {
-        filteredFiles = allFiles.filter(file =>
-            file.name.toLowerCase().includes(searchTerm)
-        );
-    }
-    
-    displayFiles();
-    displayCategories();
-    updateFileCount();
+    handleSearchWithFolders();
 }
 
 /**
  * Refresh files manually
  */
 async function refreshFiles() {
+    console.log('Refresh requested. Current state:', {
+        gapiInited,
+        gisInited,
+        hasAccessToken: !!accessToken,
+        authDivVisible: document.getElementById('authorize_div').style.display !== 'none',
+        signoutDivVisible: document.getElementById('signout_div').style.display !== 'none'
+    });
+    
     if (!gapiInited || !gisInited) {
         // Try to reinitialize APIs if they failed
         showToast('Reinitializing', 'Attempting to reload Google APIs...', 'info', 3000);
+        updateStatus('Reinitializing Google APIs...', 'loading');
+        
+        // Reset and restart initialization
+        gapiInited = false;
+        gisInited = false;
         checkAPIsLoaded();
         return;
     }
     
     if (accessToken) {
         showToast('Refreshing Files', 'Updating your training resources...', 'info', 2000);
+        updateStatus('Refreshing files...', 'loading');
         await loadDriveFiles();
     } else {
         showToast('Not Authenticated', 'Please sign in to refresh files', 'warning');
+        updateStatus('Please sign in to access your files', 'info');
     }
 }
 
@@ -615,13 +716,198 @@ function updateFileCount() {
 }
 
 /**
+ * Cache folder structure for performance
+ */
+function cacheFolderStructure() {
+    folderCache.clear();
+    
+    allFolders.forEach(folder => {
+        // Count files in each folder
+        const filesInFolder = allFiles.filter(file => 
+            file.parents && file.parents.includes(folder.id)
+        );
+        
+        folderCache.set(folder.id, {
+            ...folder,
+            fileCount: filesInFolder.length,
+            files: filesInFolder
+        });
+    });
+    
+    console.log(`Cached ${folderCache.size} folders with file counts`);
+}
+
+/**
+ * Display folder navigation in sidebar
+ */
+function displayFolderNavigation() {
+    const foldersContainer = document.getElementById('foldersContainer');
+    if (!foldersContainer) return;
+    
+    foldersContainer.innerHTML = '';
+    
+    // Add "All Files" option
+    const allFilesOption = createFolderNavigationItem({
+        id: 'all',
+        name: 'All Files',
+        fileCount: allFiles.length,
+        isAllFiles: true
+    });
+    foldersContainer.appendChild(allFilesOption);
+    
+    // Sort folders by file count (most files first) and name
+    const sortedFolders = Array.from(folderCache.values())
+        .sort((a, b) => {
+            if (a.fileCount !== b.fileCount) {
+                return b.fileCount - a.fileCount; // More files first
+            }
+            return a.name.localeCompare(b.name); // Alphabetical for same count
+        })
+        .filter(folder => folder.fileCount > 0); // Only show folders with files
+    
+    sortedFolders.forEach(folder => {
+        const folderItem = createFolderNavigationItem(folder);
+        foldersContainer.appendChild(folderItem);
+    });
+    
+    // Show empty state if no folders with files
+    if (sortedFolders.length === 0) {
+        const emptyState = document.createElement('div');
+        emptyState.className = 'folder-empty-state';
+        emptyState.innerHTML = `
+            <p>No folders with files found</p>
+            <small>Files are organized by content categories instead</small>
+        `;
+        foldersContainer.appendChild(emptyState);
+    }
+}
+
+/**
+ * Create folder navigation item
+ */
+function createFolderNavigationItem(folder) {
+    const folderDiv = document.createElement('div');
+    folderDiv.className = `folder-nav-item ${currentFolderFilter === folder.id ? 'active' : ''}`;
+    
+    const isAllFiles = folder.isAllFiles;
+    const iconClass = isAllFiles ? 'icon-file' : 'icon-folder';
+    
+    folderDiv.innerHTML = `
+        <div class="folder-nav-content" data-folder-id="${folder.id}">
+            <div class="file-type-icon ${iconClass}"></div>
+            <div class="folder-info">
+                <div class="folder-name">${folder.name}</div>
+                <div class="folder-count">${folder.fileCount} file${folder.fileCount !== 1 ? 's' : ''}</div>
+            </div>
+            ${!isAllFiles ? `<a href="${folder.webViewLink}" target="_blank" class="folder-link" title="Open in Google Drive">↗</a>` : ''}
+        </div>
+    `;
+    
+    // Add click handler for filtering
+    const navContent = folderDiv.querySelector('.folder-nav-content');
+    navContent.addEventListener('click', (e) => {
+        if (e.target.classList.contains('folder-link')) {
+            return; // Don't filter when clicking the external link
+        }
+        filterByFolder(folder.id === 'all' ? null : folder.id, folder.name);
+    });
+    
+    return folderDiv;
+}
+
+/**
+ * Filter files by folder
+ */
+function filterByFolder(folderId, folderName) {
+    currentFolderFilter = folderId;
+    
+    // Update active state in folder navigation
+    document.querySelectorAll('.folder-nav-item').forEach(item => {
+        item.classList.remove('active');
+    });
+    
+    document.querySelector(`[data-folder-id="${folderId || 'all'}"]`)
+        ?.parentElement.classList.add('active');
+    
+    // Filter files
+    if (folderId) {
+        const folderData = folderCache.get(folderId);
+        filteredFiles = folderData ? folderData.files : [];
+        
+        // Also apply search if active
+        const searchTerm = searchInput.value.toLowerCase().trim();
+        if (searchTerm) {
+            filteredFiles = filteredFiles.filter(file =>
+                file.name.toLowerCase().includes(searchTerm)
+            );
+        }
+        
+        // Update status
+        updateStatus(`Viewing folder: ${folderName} (${filteredFiles.length} files)`, 'info');
+        showToast('Folder Selected', `Viewing ${folderName} - ${filteredFiles.length} files`, 'info', 2000);
+    } else {
+        // Show all files
+        const searchTerm = searchInput.value.toLowerCase().trim();
+        if (searchTerm) {
+            filteredFiles = allFiles.filter(file =>
+                file.name.toLowerCase().includes(searchTerm)
+            );
+        } else {
+            filteredFiles = [...allFiles];
+        }
+        
+        updateStatus(`Viewing all files (${filteredFiles.length} total)`, 'info');
+    }
+    
+    // Update displays
+    displayFiles();
+    displayCategories();
+    updateFileCount();
+}
+
+/**
+ * Enhanced search that respects folder filter
+ */
+function handleSearchWithFolders() {
+    const searchTerm = searchInput.value.toLowerCase().trim();
+    
+    let baseFiles;
+    if (currentFolderFilter) {
+        // Search within current folder
+        const folderData = folderCache.get(currentFolderFilter);
+        baseFiles = folderData ? folderData.files : [];
+    } else {
+        // Search all files
+        baseFiles = allFiles;
+    }
+    
+    if (searchTerm === '') {
+        filteredFiles = [...baseFiles];
+    } else {
+        filteredFiles = baseFiles.filter(file =>
+            file.name.toLowerCase().includes(searchTerm)
+        );
+    }
+    
+    displayFiles();
+    displayCategories();
+    updateFileCount();
+}
+
+/**
  * Clear files list
  */
 function clearFilesList() {
     allFilesList.innerHTML = '';
     categoriesList.innerHTML = '';
+    const foldersContainer = document.getElementById('foldersContainer');
+    if (foldersContainer) foldersContainer.innerHTML = '';
+    
     allFiles = [];
     filteredFiles = [];
+    allFolders = [];
+    folderCache.clear();
+    currentFolderFilter = null;
 }
 
 /**
