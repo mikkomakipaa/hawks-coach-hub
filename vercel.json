@@ -1,9 +1,4 @@
 {
-  "buildCommand": "",
-  "outputDirectory": "./",
-  "installCommand": "",
-  "devCommand": "",
-  "functions": {},
   "headers": [
     {
       "source": "/(.*)",
