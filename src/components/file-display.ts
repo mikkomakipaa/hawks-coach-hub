@@ -2,7 +2,11 @@
  * File Display Components
  */
 
-import type { DriveFile, FileCategory, CategoryName } from '@/types/google-apis';
+import type {
+  DriveFile,
+  FileCategory,
+  CategoryName,
+} from '@/types/google-apis';
 import { createElement } from '@/utils/dom';
 
 export class FileDisplayService {
@@ -30,24 +34,121 @@ export class FileDisplayService {
   }
 
   /**
-   * Create a file item element
+   * Detect content type for coaching context
+   */
+  private detectContentType(fileName: string): string {
+    const name = fileName.toLowerCase();
+
+    // Coaching-specific content detection
+    if (
+      name.includes('drill') ||
+      name.includes('harjoitus') ||
+      name.includes('exercise')
+    ) {
+      return 'drill';
+    }
+    if (
+      name.includes('tactic') ||
+      name.includes('taktiikka') ||
+      name.includes('strategy')
+    ) {
+      return 'tactic';
+    }
+    if (
+      name.includes('plan') ||
+      name.includes('ohjelma') ||
+      name.includes('session') ||
+      name.includes('practice')
+    ) {
+      return 'plan';
+    }
+    if (
+      name.includes('video') ||
+      name.includes('demo') ||
+      name.includes('example')
+    ) {
+      return 'video';
+    }
+
+    return 'general';
+  }
+
+  /**
+   * Check if file was recently accessed (mock implementation)
+   */
+  private isRecentlyAccessed(file: DriveFile): boolean {
+    // Mock logic - in real implementation would check localStorage or usage analytics
+    const recentFiles = JSON.parse(localStorage.getItem('recentFiles') || '[]');
+    return recentFiles.includes(file.id);
+  }
+
+  /**
+   * Get localized content type label
+   */
+  private getContentTypeLabel(contentType: string): string {
+    const labels: Record<string, string> = {
+      drill: 'Harjoitus',
+      tactic: 'Taktiikka',
+      plan: 'Suunnitelma',
+      video: 'Video',
+      general: 'Materiaali',
+    };
+    return labels[contentType] || 'Materiaali';
+  }
+
+  /**
+   * Create action buttons for file
+   */
+  private createActionButtons(file: DriveFile): string {
+    return `
+      <div class="file-actions">
+        <button class="action-btn" onclick="window.open('${file.webViewLink}', '_blank')" title="Avaa Google Drivessa">
+          Avaa
+        </button>
+        <button class="action-btn secondary" onclick="FileActions.addToSession('${file.id}')" title="Lisää harjoitukseen">
+          + Harjoitus
+        </button>
+        <button class="action-btn secondary" onclick="FileActions.downloadFile('${file.webViewLink}')" title="Lataa">
+          ⬇
+        </button>
+      </div>
+    `;
+  }
+
+  /**
+   * Create a file item element with enhanced UX
    */
   createFileItem(file: DriveFile): HTMLElement {
     const fileItem = createElement('div', 'file-item');
-    
+
+    const contentType = this.detectContentType(file.name);
+    const isRecent = this.isRecentlyAccessed(file);
     const icon = this.getFileIcon(file.mimeType);
-    const modifiedDate = new Date(file.modifiedTime).toLocaleDateString();
-    
+    const modifiedDate = new Date(file.modifiedTime).toLocaleDateString(
+      'fi-FI'
+    );
+    const actionButtons = this.createActionButtons(file);
+
+    // Add data attributes for styling
+    fileItem.setAttribute('data-type', contentType);
+    if (isRecent) {
+      fileItem.classList.add('recently-accessed');
+    }
+
     fileItem.innerHTML = `
       <div class="file-icon">${icon}</div>
       <div class="file-info">
         <a href="${file.webViewLink}" target="_blank" rel="noopener noreferrer" class="file-name">
           ${file.name}
         </a>
-        <div class="file-date">Modified: ${modifiedDate}</div>
+        <div class="file-meta">
+          <span class="file-date">Muokattu: ${modifiedDate}</span>
+          <span class="content-type-badge">${this.getContentTypeLabel(contentType)}</span>
+        </div>
       </div>
+      ${actionButtons}
     `;
-    
+
     return fileItem;
   }
 
@@ -85,7 +186,7 @@ export class FileDisplayService {
    */
   createEmptyState(isSearching: boolean, hasFiles: boolean): HTMLElement {
     const emptyDiv = createElement('div', 'empty-state');
-    
+
     if (isSearching) {
       emptyDiv.innerHTML = `
         <div class="empty-icon">🔍</div>
@@ -122,7 +223,7 @@ export class FileDisplayService {
         <p>This category is currently empty. Files will appear here when they match the category criteria.</p>
       `;
     }
-    
+
     return emptyDiv;
   }
 
@@ -136,52 +237,81 @@ export class FileDisplayService {
       'Training Plans': [],
       'Video Resources': [],
       'Diagrams & Images': [],
-      'Documents': [],
-      'Other': []
+      Documents: [],
+      Other: [],
     };
-    
+
     files.forEach(file => {
       const name = file.name.toLowerCase();
       const mimeType = file.mimeType;
-      
+
       // Floorball-specific categorization
-      if (name.includes('drill') || name.includes('exercise') || name.includes('training') || name.includes('floorball')) {
+      if (
+        name.includes('drill') ||
+        name.includes('exercise') ||
+        name.includes('training') ||
+        name.includes('floorball')
+      ) {
         categories['Floorball Drills'].push(file);
-      } else if (name.includes('tactic') || name.includes('strategy') || name.includes('formation')) {
+      } else if (
+        name.includes('tactic') ||
+        name.includes('strategy') ||
+        name.includes('formation')
+      ) {
         categories['Tactics & Strategy'].push(file);
-      } else if (name.includes('plan') || name.includes('program') || name.includes('schedule') || name.includes('season')) {
+      } else if (
+        name.includes('plan') ||
+        name.includes('program') ||
+        name.includes('schedule') ||
+        name.includes('season')
+      ) {
         categories['Training Plans'].push(file);
-      } else if (mimeType.includes('video') || name.includes('.mp4') || name.includes('.mov')) {
+      } else if (
+        mimeType.includes('video') ||
+        name.includes('.mp4') ||
+        name.includes('.mov')
+      ) {
         categories['Video Resources'].push(file);
-      } else if (mimeType.includes('image') || name.includes('.jpg') || name.includes('.png')) {
+      } else if (
+        mimeType.includes('image') ||
+        name.includes('.jpg') ||
+        name.includes('.png')
+      ) {
         categories['Diagrams & Images'].push(file);
-      } else if (mimeType.includes('document') || mimeType.includes('pdf') || mimeType.includes('text')) {
+      } else if (
+        mimeType.includes('document') ||
+        mimeType.includes('pdf') ||
+        mimeType.includes('text')
+      ) {
         categories['Documents'].push(file);
       } else {
         categories['Other'].push(file);
       }
     });
-    
+
     return categories;
   }
 
   /**
    * Create a category section
    */
-  createCategorySection(categoryName: CategoryName, files: DriveFile[]): HTMLElement {
+  createCategorySection(
+    categoryName: CategoryName,
+    files: DriveFile[]
+  ): HTMLElement {
     const categoryDiv = createElement('div', 'category');
-    
+
     const categoryHeader = createElement('h3');
     categoryHeader.textContent = `${categoryName} (${files.length})`;
     categoryDiv.appendChild(categoryHeader);
-    
+
     const fileList = createElement('div', 'file-list');
-    
+
     files.forEach(file => {
       const fileItem = this.createFileItem(file);
       fileList.appendChild(fileItem);
     });
-    
+
     categoryDiv.appendChild(fileList);
     return categoryDiv;
   }

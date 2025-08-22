@@ -24,7 +24,10 @@ import { initializeToastContainer, showToast } from '@/components/toast';
 import { DriveApiService } from '@/services/drive-api';
 import { FileDisplayService } from '@/components/file-display';
 import { SearchService } from '@/utils/search';
-import { FolderBrowserService } from '@/components/folder-browser';
+import {
+  FolderBrowserService,
+  type FolderTreeNode,
+} from '@/components/folder-browser';
 
 // Application State
 interface AppState {
@@ -37,6 +40,10 @@ interface AppState {
   allFolders: DriveFolder[];
   folderCache: Map<string, DriveFolder>;
   currentFolderFilter: string | null;
+  // Pagination
+  currentPage: number;
+  itemsPerPage: number;
+  totalPages: number;
 }
 
 const state: AppState = {
@@ -49,6 +56,9 @@ const state: AppState = {
   allFolders: [],
   folderCache: new Map(),
   currentFolderFilter: null,
+  currentPage: 1,
+  itemsPerPage: 50,
+  totalPages: 1,
 };
 
 // Services
@@ -56,6 +66,217 @@ const driveApiService = new DriveApiService();
 const fileDisplayService = new FileDisplayService();
 const searchService = new SearchService();
 const folderBrowserService = new FolderBrowserService();
+
+// Session Planning State
+const sessionPlanningState = {
+  isActive: false,
+  selectedFiles: new Set<string>(),
+  sessionName: '',
+};
+
+// Global FileActions for action buttons
+declare global {
+  // eslint-disable-next-line no-unused-vars
+  interface Window {
+    FileActions: {
+      // eslint-disable-next-line no-unused-vars
+      addToSession: (fileId: string) => void;
+      // eslint-disable-next-line no-unused-vars
+      downloadFile: (url: string) => void;
+      togglePlanningMode: () => void;
+      exportSession: () => void;
+      // eslint-disable-next-line no-unused-vars
+      removeFromSession: (fileId: string) => void;
+    };
+  }
+}
+
+window.FileActions = {
+  addToSession: (fileId: string) => {
+    if (sessionPlanningState.isActive) {
+      sessionPlanningState.selectedFiles.add(fileId);
+      updateSessionDisplay();
+      showToast(
+        'Tiedosto lisätty',
+        'Materiaali lisätty harjoitussuunnitelmaan',
+        'success',
+        2000
+      );
+    } else {
+      // Auto-enable planning mode and add file
+      sessionPlanningState.isActive = true;
+      sessionPlanningState.selectedFiles.add(fileId);
+      updatePlanningModeUI();
+      updateSessionDisplay();
+      showToast(
+        'Harjoitussuunnittelu aloitettu',
+        'Ensimmäinen materiaali lisätty',
+        'info',
+        3000
+      );
+    }
+  },
+
+  downloadFile: (url: string) => {
+    // Track recent access
+    const recentFiles = JSON.parse(localStorage.getItem('recentFiles') || '[]');
+    const fileId = url.split('/d/')[1]?.split('/')[0];
+    if (fileId && !recentFiles.includes(fileId)) {
+      recentFiles.unshift(fileId);
+      if (recentFiles.length > 10) recentFiles.pop(); // Keep only 10 recent files
+      localStorage.setItem('recentFiles', JSON.stringify(recentFiles));
+    }
+
+    window.open(url, '_blank');
+    showToast(
+      'Avataan tiedosto',
+      'Tiedosto avautuu uudessa välilehdessä',
+      'info',
+      2000
+    );
+  },
+
+  togglePlanningMode: () => {
+    sessionPlanningState.isActive = !sessionPlanningState.isActive;
+    if (!sessionPlanningState.isActive) {
+      sessionPlanningState.selectedFiles.clear();
+    }
+    updatePlanningModeUI();
+    updateSessionDisplay();
+  },
+
+  exportSession: () => {
+    if (sessionPlanningState.selectedFiles.size === 0) {
+      showToast(
+        'Ei materiaaleja',
+        'Lisää ensin materiaaleja harjoitukseen',
+        'warning',
+        3000
+      );
+      return;
+    }
+
+    const selectedFilesList = Array.from(sessionPlanningState.selectedFiles)
+      .map(fileId => state.allFiles.find(f => f.id === fileId))
+      .filter(Boolean)
+      .map(file => `• ${file!.name}`)
+      .join('\n');
+
+    const sessionData = `HAWKS HARJOITUSSUUNNITELMA
+Luotu: ${new Date().toLocaleDateString('fi-FI')}
+
+MATERIAALIT (${sessionPlanningState.selectedFiles.size} kpl):
+${selectedFilesList}
+
+---
+Luotu Hawks Valmennuskeskuksessa`;
+
+    navigator.clipboard
+      .writeText(sessionData)
+      .then(() => {
+        showToast(
+          'Suunnitelma kopioitu',
+          'Harjoitussuunnitelma kopioitu leikepöydälle',
+          'success',
+          3000
+        );
+      })
+      .catch(() => {
+        // Fallback for browsers that don't support clipboard API
+        const textarea = document.createElement('textarea');
+        textarea.value = sessionData;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        showToast(
+          'Suunnitelma kopioitu',
+          'Harjoitussuunnitelma kopioitu leikepöydälle',
+          'success',
+          3000
+        );
+      });
+  },
+
+  removeFromSession: (fileId: string) => {
+    sessionPlanningState.selectedFiles.delete(fileId);
+    updateSessionDisplay();
+    showToast(
+      'Materiaali poistettu',
+      'Materiaali poistettu harjoitussuunnitelmasta',
+      'info',
+      2000
+    );
+  },
+};
+
+// Session planning UI helper functions
+const updatePlanningModeUI = (): void => {
+  const planningBar = document.getElementById('session-planning-bar');
+  if (!planningBar) return;
+
+  planningBar.style.display = sessionPlanningState.isActive ? 'flex' : 'none';
+
+  // Update planning mode toggle button if it exists
+  const toggleBtn = document.querySelector('.planning-toggle-btn');
+  if (toggleBtn) {
+    toggleBtn.textContent = sessionPlanningState.isActive
+      ? 'Lopeta suunnittelu'
+      : 'Aloita harjoitussuunnittelu';
+    toggleBtn.classList.toggle('active', sessionPlanningState.isActive);
+  }
+
+  // Add visual indicators to file items
+  document.querySelectorAll('.file-item').forEach(item => {
+    item.classList.toggle('planning-mode', sessionPlanningState.isActive);
+  });
+};
+
+const updateSessionDisplay = (): void => {
+  const sessionCount = document.getElementById('session-count');
+  const sessionList = document.getElementById('session-materials-list');
+
+  if (sessionCount) {
+    sessionCount.textContent =
+      sessionPlanningState.selectedFiles.size.toString();
+  }
+
+  if (sessionList) {
+    sessionList.innerHTML = '';
+
+    if (sessionPlanningState.selectedFiles.size === 0) {
+      sessionList.innerHTML =
+        '<div class="session-empty">Ei materiaaleja valittuna</div>';
+    } else {
+      Array.from(sessionPlanningState.selectedFiles).forEach(fileId => {
+        const file = state.allFiles.find(f => f.id === fileId);
+        if (file) {
+          const item = createElement('div', 'session-material-item');
+          item.innerHTML = `
+            <span class="material-name">${file.name}</span>
+            <button class="remove-material-btn" onclick="window.FileActions.removeFromSession('${fileId}')" title="Poista">×</button>
+          `;
+          sessionList.appendChild(item);
+        }
+      });
+    }
+  }
+
+  // Update file items visual state
+  document.querySelectorAll('.file-item').forEach(item => {
+    const addBtn = item.querySelector('.session-add-btn') as HTMLButtonElement;
+    if (addBtn) {
+      const fileId = addBtn.getAttribute('data-file-id');
+      const isSelected =
+        fileId && sessionPlanningState.selectedFiles.has(fileId);
+      item.classList.toggle('in-session', !!isSelected);
+      if (addBtn) {
+        addBtn.textContent = isSelected ? '✓ Lisätty' : '+ Harjoitus';
+        addBtn.classList.toggle('added', !!isSelected);
+      }
+    }
+  });
+};
 
 // DOM Elements
 let authorizeDiv: HTMLElement;
@@ -67,15 +288,17 @@ let statusText: HTMLElement;
 let searchInput: HTMLInputElement;
 let refreshButton: HTMLButtonElement;
 let allFilesList: HTMLElement;
-let categoriesList: HTMLElement;
 let fileCountBadge: HTMLElement;
-let foldersContainer: HTMLElement;
-let toggleFolderBrowser: HTMLButtonElement;
 let mainSectionTitle: HTMLElement;
-let totalFilesEl: HTMLElement;
-let totalFoldersEl: HTMLElement;
 let currentViewCountEl: HTMLElement;
-let allFilesCount: HTMLElement;
+let folderChipsBar: HTMLElement;
+let folderChips: HTMLElement;
+// Pagination elements
+let paginationInfo: HTMLElement;
+let paginationControls: HTMLElement;
+let prevPageBtn: HTMLButtonElement;
+let nextPageBtn: HTMLButtonElement;
+let paginationPages: HTMLElement;
 
 const initializeDOMElements = (): void => {
   try {
@@ -88,15 +311,17 @@ const initializeDOMElements = (): void => {
     searchInput = getDOMElement('searchInput');
     refreshButton = getDOMElement('refreshButton');
     allFilesList = getDOMElement('allFilesList');
-    categoriesList = getDOMElement('categoriesList');
     fileCountBadge = getDOMElement('fileCount');
-    foldersContainer = getDOMElement('foldersContainer');
-    toggleFolderBrowser = getDOMElement('toggleFolderBrowser');
     mainSectionTitle = getDOMElement('mainSectionTitle');
-    totalFilesEl = getDOMElement('totalFiles');
-    totalFoldersEl = getDOMElement('totalFolders');
     currentViewCountEl = getDOMElement('currentViewCount');
-    allFilesCount = getDOMElement('allFilesCount');
+    folderChipsBar = getDOMElement('folderChipsBar');
+    folderChips = getDOMElement('folderChips');
+    // Pagination elements
+    paginationInfo = getDOMElement('paginationInfo');
+    paginationControls = getDOMElement('paginationControls');
+    prevPageBtn = getDOMElement('prevPage');
+    nextPageBtn = getDOMElement('nextPage');
+    paginationPages = getDOMElement('paginationPages');
 
     initializeToastContainer();
   } catch (error) {
@@ -127,14 +352,14 @@ const setupEventListeners = (): void => {
   signoutButton.addEventListener('click', handleSignoutClick);
   refreshButton.addEventListener('click', refreshFiles);
   searchInput.addEventListener('input', handleSearch);
-  toggleFolderBrowser.addEventListener('click', handleToggleFolderBrowser);
 
-  // Folder browser event delegation
-  foldersContainer.addEventListener('click', handleFolderClick);
+  // Folder chips event delegation
+  folderChips.addEventListener('click', handleFolderChipClick);
 
-  // All files selection
-  const allFilesItem = document.querySelector('.folder-item.all-files');
-  allFilesItem?.addEventListener('click', () => selectFolder(null));
+  // Pagination event listeners
+  prevPageBtn.addEventListener('click', () => goToPage(state.currentPage - 1));
+  nextPageBtn.addEventListener('click', () => goToPage(state.currentPage + 1));
+  paginationPages.addEventListener('click', handlePageClick);
 };
 
 const setupAutoRefresh = (): void => {
@@ -424,8 +649,7 @@ const loadDriveFiles = async (): Promise<void> => {
 
     hideSkeletonLoading();
     displayFiles();
-    displayCategories();
-    displayFolderNavigation();
+    displayFolderChips();
     updateFileCount();
 
     if (files.length === 0 && folders.length === 0) {
@@ -457,15 +681,13 @@ const loadDriveFiles = async (): Promise<void> => {
 
 const clearFilesList = (): void => {
   allFilesList.innerHTML = '';
-  if (categoriesList) {
-    categoriesList.innerHTML = '';
-  }
 
   state.allFiles = [];
   state.filteredFiles = [];
   state.allFolders = [];
   state.folderCache.clear();
   state.currentFolderFilter = null;
+  state.currentPage = 1;
 };
 
 const performSearch = (): void => {
@@ -478,8 +700,9 @@ const performSearch = (): void => {
     state.folderCache
   );
 
+  // Reset to first page when search changes
+  state.currentPage = 1;
   displayFiles();
-  displayCategories();
   updateFileCount();
 };
 
@@ -555,20 +778,11 @@ const initializeApp = (): void => {
 // Display functions
 const showSkeletonLoading = (): void => {
   allFilesList.innerHTML = '';
-  if (categoriesList) categoriesList.innerHTML = '';
 
   // Create skeleton items for main list
   for (let i = 0; i < 8; i++) {
     const skeleton = fileDisplayService.createSkeletonItem();
     allFilesList.appendChild(skeleton);
-  }
-
-  // Create skeleton for categories
-  if (categoriesList) {
-    for (let i = 0; i < 3; i++) {
-      const categorySkeleton = fileDisplayService.createCategorySkeleton();
-      categoriesList.appendChild(categorySkeleton);
-    }
   }
 };
 
@@ -577,6 +791,129 @@ const hideSkeletonLoading = (): void => {
     '.skeleton-item, .skeleton-category'
   );
   skeletons.forEach(skeleton => skeleton.remove());
+};
+
+// Pagination functions
+const updatePagination = (): void => {
+  const totalItems = state.filteredFiles.length;
+  state.totalPages = Math.ceil(totalItems / state.itemsPerPage);
+
+  // Reset to page 1 if current page is beyond total pages
+  if (state.currentPage > state.totalPages && state.totalPages > 0) {
+    state.currentPage = 1;
+  }
+
+  updatePaginationInfo();
+  updatePaginationControls();
+};
+
+const updatePaginationInfo = (): void => {
+  const totalItems = state.filteredFiles.length;
+  const startItem =
+    totalItems > 0 ? (state.currentPage - 1) * state.itemsPerPage + 1 : 0;
+  const endItem = Math.min(state.currentPage * state.itemsPerPage, totalItems);
+
+  if (paginationInfo) {
+    const infoText =
+      totalItems > 0 ? `Näytetään ${startItem}-${endItem} / ${totalItems}` : '';
+    paginationInfo.textContent = infoText;
+  }
+};
+
+const updatePaginationControls = (): void => {
+  if (!paginationControls) return;
+
+  // Show/hide pagination controls
+  if (state.totalPages <= 1) {
+    paginationControls.style.display = 'none';
+    return;
+  }
+
+  paginationControls.style.display = 'flex';
+
+  // Update prev/next buttons
+  prevPageBtn.disabled = state.currentPage <= 1;
+  nextPageBtn.disabled = state.currentPage >= state.totalPages;
+
+  // Update page numbers
+  updatePageNumbers();
+};
+
+const updatePageNumbers = (): void => {
+  if (!paginationPages) return;
+
+  paginationPages.innerHTML = '';
+
+  const maxVisiblePages = 5;
+  let startPage = Math.max(
+    1,
+    state.currentPage - Math.floor(maxVisiblePages / 2)
+  );
+  const endPage = Math.min(state.totalPages, startPage + maxVisiblePages - 1);
+
+  // Adjust start if we're near the end
+  if (endPage - startPage + 1 < maxVisiblePages) {
+    startPage = Math.max(1, endPage - maxVisiblePages + 1);
+  }
+
+  // Add first page if not visible
+  if (startPage > 1) {
+    addPageButton(1);
+    if (startPage > 2) {
+      addPageEllipsis();
+    }
+  }
+
+  // Add visible pages
+  for (let i = startPage; i <= endPage; i++) {
+    addPageButton(i);
+  }
+
+  // Add last page if not visible
+  if (endPage < state.totalPages) {
+    if (endPage < state.totalPages - 1) {
+      addPageEllipsis();
+    }
+    addPageButton(state.totalPages);
+  }
+};
+
+const addPageButton = (pageNum: number): void => {
+  const button = createElement('button', 'pagination-page');
+  button.textContent = pageNum.toString();
+  if (pageNum === state.currentPage) {
+    button.classList.add('active');
+  }
+  button.setAttribute('data-page', pageNum.toString());
+  paginationPages.appendChild(button);
+};
+
+const addPageEllipsis = (): void => {
+  const ellipsis = createElement('span', 'pagination-ellipsis');
+  ellipsis.textContent = '...';
+  ellipsis.style.padding = '0.5rem 0.25rem';
+  ellipsis.style.color = 'var(--neutral-medium)';
+  paginationPages.appendChild(ellipsis);
+};
+
+const goToPage = (page: number): void => {
+  if (page < 1 || page > state.totalPages) return;
+
+  state.currentPage = page;
+  displayFiles();
+  updatePaginationControls();
+  updateFileCount();
+
+  // Scroll to top of file list
+  allFilesList.scrollIntoView({ behavior: 'smooth', block: 'start' });
+};
+
+const handlePageClick = (event: Event): void => {
+  const target = event.target as HTMLElement;
+  if (target.classList.contains('pagination-page')) {
+    const page = parseInt(target.getAttribute('data-page') || '1', 10);
+    goToPage(page);
+  }
 };
 
 const displayFiles = (): void => {
@@ -589,69 +926,118 @@ const displayFiles = (): void => {
       state.allFiles.length > 0
     );
     allFilesList.appendChild(emptyState);
+    updatePagination();
     return;
   }
 
-  state.filteredFiles.forEach(file => {
+  // Get current page items
+  const startIndex = (state.currentPage - 1) * state.itemsPerPage;
+  const endIndex = startIndex + state.itemsPerPage;
+  const pageItems = state.filteredFiles.slice(startIndex, endIndex);
+
+  pageItems.forEach(file => {
     const fileItem = fileDisplayService.createFileItem(file);
     allFilesList.appendChild(fileItem);
   });
+
+  updatePagination();
 };
 
-const displayCategories = (): void => {
-  if (!categoriesList) return;
+const displayFolderChips = (): void => {
+  if (!folderChips || !folderChipsBar) return;
 
-  categoriesList.innerHTML = '';
-
-  const categories = fileDisplayService.groupFilesByCategory(
-    state.filteredFiles
-  );
-
-  Object.entries(categories).forEach(([categoryName, files]) => {
-    if (files.length > 0) {
-      const categoryDiv = fileDisplayService.createCategorySection(
-        categoryName as keyof typeof categories,
-        files
-      );
-      categoriesList.appendChild(categoryDiv);
-    }
-  });
-};
-
-const displayFolderNavigation = (): void => {
-  if (!foldersContainer) return;
-
-  // Initialize folder browser service
+  // Build folder tree to get organized hierarchy
   folderBrowserService.initialize(state.allFolders, state.folderCache);
-
-  // Build folder tree
   const folderTree = folderBrowserService.buildFolderTree();
 
-  // Clear existing content
-  foldersContainer.innerHTML = '';
+  // Clear existing chips
+  folderChips.innerHTML = '';
 
-  if (folderTree.length === 0) {
-    const emptyState = createElement('div', 'folder-empty-state');
-    emptyState.innerHTML = `
-      <p>Ei kansioita löytynyt</p>
-      <small>Tiedostot näytetään kategorioittain</small>
-    `;
-    foldersContainer.appendChild(emptyState);
-    return;
-  }
-
-  // Create expandable folder tree
-  const expandedFolders = new Set<string>(); // Start with all collapsed
-  const treeElement = folderBrowserService.createFolderTree(
-    folderTree,
-    expandedFolders
+  // Create "All Files" chip
+  const allFilesChip = createElement(
+    'button',
+    `folder-chip ${state.currentFolderFilter === null ? 'active' : ''}`
   );
-  foldersContainer.appendChild(treeElement);
+  allFilesChip.setAttribute('data-folder-id', '');
+  allFilesChip.innerHTML = `
+    <span class="folder-chip-icon">📁</span>
+    <span>Kaikki tiedostot</span>
+    <span class="folder-chip-count">${state.allFiles.length}</span>
+  `;
+  folderChips.appendChild(allFilesChip);
 
-  // Update stats
-  updateFolderStats();
+  // Add chips for root folders and their immediate children
+  const addFolderChips = (folders: FolderTreeNode[], level = 0) => {
+    if (level > 1) return; // Limit to 2 levels for horizontal space
 
-  console.log(`Displayed ${folderTree.length} root folders in browser`);
+    folders.forEach(folder => {
+      const chip = createElement(
+        'button',
+        `folder-chip ${state.currentFolderFilter === folder.id ? 'active' : ''}`
+      );
+      chip.setAttribute('data-folder-id', folder.id);
+
+      const folderData = state.folderCache.get(folder.id);
+      const fileCount = folderData?.fileCount || 0;
+      const indent = level > 0 ? '└ ' : '';
+
+      chip.innerHTML = `
+        <span class="folder-chip-icon">${level > 0 ? '📄' : '📁'}</span>
+        <span>${indent}${folder.name}</span>
+        <span class="folder-chip-count">${fileCount}</span>
+      `;
+
+      folderChips.appendChild(chip);
+
+      // Add immediate children for root folders
+      if (level === 0 && folder.children.length > 0) {
+        addFolderChips(folder.children.slice(0, 3), level + 1); // Limit to 3 children
+      }
+    });
+  };
+
+  addFolderChips(folderTree);
+
+  // Show the chips bar
+  folderChipsBar.style.display = 'block';
+
+  console.log(`Displayed ${folderTree.length} folder chips`);
+};
+
+const getRecursiveFileCountForFolder = (folderId: string): number => {
+  // Get direct files in this folder
+  const directFiles = driveApiService.getFilesInFolder(
+    folderId,
+    state.allFiles,
+    state.allFolders
+  );
+
+  // Get all child folder IDs recursively
+  const getChildFolderIds = (parentId: string): string[] => {
+    const childIds: string[] = [];
+    state.allFolders.forEach(folder => {
+      if (folder.parents && folder.parents.includes(parentId)) {
+        childIds.push(folder.id);
+        // Recursively get grandchildren
+        childIds.push(...getChildFolderIds(folder.id));
+      }
+    });
+    return childIds;
+  };
+
+  // Count files in all child folders
+  const childFolderIds = getChildFolderIds(folderId);
+  let childFileCount = 0;
+  childFolderIds.forEach(childId => {
+    const childFiles = driveApiService.getFilesInFolder(
+      childId,
+      state.allFiles,
+      state.allFolders
+    );
+    childFileCount += childFiles.length;
+  });
+
+  return directFiles.length + childFileCount;
 };
 
 const cacheFolderStructure = (): void => {
@@ -664,14 +1050,19 @@ const cacheFolderStructure = (): void => {
       state.allFolders
     );
 
+    // Calculate recursive file count for display purposes
+    const recursiveFileCount = getRecursiveFileCountForFolder(folder.id);
+
     state.folderCache.set(folder.id, {
       ...folder,
-      fileCount: folderFiles.length,
-      files: folderFiles,
+      fileCount: recursiveFileCount, // Show total files including subfolders
+      files: folderFiles, // Keep direct files for compatibility
     });
   });
 
-  console.log(`Cached ${state.folderCache.size} folders with file counts`);
+  console.log(
+    `Cached ${state.folderCache.size} folders with recursive file counts`
+  );
 };
 
 const updateFileCount = (): void => {
@@ -686,120 +1077,87 @@ const updateFileCount = (): void => {
   }
 };
 
-const updateFolderStats = (): void => {
-  if (totalFilesEl) {
-    totalFilesEl.textContent = state.allFiles.length.toString();
-  }
-  if (totalFoldersEl) {
-    totalFoldersEl.textContent = state.allFolders.length.toString();
-  }
-  if (allFilesCount) {
-    allFilesCount.textContent = `${state.allFiles.length} tiedosto${state.allFiles.length !== 1 ? 'a' : ''}`;
-  }
-};
-
-const handleToggleFolderBrowser = (): void => {
-  const folderBrowser = document.querySelector(
-    '.folder-browser'
-  ) as HTMLElement;
-  if (folderBrowser) {
-    folderBrowser.classList.toggle('collapsed');
-    const isCollapsed = folderBrowser.classList.contains('collapsed');
-    toggleFolderBrowser.textContent = isCollapsed ? '→' : '←';
-    toggleFolderBrowser.setAttribute(
-      'aria-label',
-      isCollapsed ? 'Näytä kansioselain' : 'Piilota kansioselain'
-    );
-  }
-};
-
-const handleFolderClick = (event: Event): void => {
+const handleFolderChipClick = (event: Event): void => {
   const target = event.target as HTMLElement;
+  const chip = target.closest('.folder-chip') as HTMLElement;
 
-  // Handle expand/collapse buttons
-  if (target.classList.contains('expand-btn')) {
+  if (chip) {
     event.preventDefault();
-    event.stopPropagation();
-
-    const folderId = target.getAttribute('data-folder-id');
-    if (folderId) {
-      toggleFolderExpansion(folderId);
-    }
-    return;
-  }
-
-  // Handle folder selection
-  const folderItem = target.closest('.folder-item') as HTMLElement;
-  if (folderItem && !target.classList.contains('folder-external-link')) {
-    event.preventDefault();
-    const folderId = folderItem.getAttribute('data-folder-id');
-    selectFolder(folderId);
+    const folderId = chip.getAttribute('data-folder-id');
+    selectFolder(folderId === '' ? null : folderId);
   }
 };
 
-const toggleFolderExpansion = (folderId: string): void => {
-  const expandBtn = document.querySelector(
-    `[data-folder-id="${folderId}"].expand-btn`
-  ) as HTMLElement;
-  const childrenContainer = document.querySelector(
-    `[data-parent-id="${folderId}"]`
-  ) as HTMLElement;
+const getFilesInFolderRecursive = (folderId: string): DriveFile[] => {
+  const files: DriveFile[] = [];
 
-  if (expandBtn && childrenContainer) {
-    const isExpanded = expandBtn.classList.contains('expanded');
-
-    expandBtn.classList.toggle('expanded');
-    expandBtn.textContent = isExpanded ? '▶' : '▼';
-
-    childrenContainer.classList.toggle('expanded');
-    childrenContainer.classList.toggle('collapsed');
+  // Get direct files in this folder
+  const folderData = state.folderCache.get(folderId);
+  if (folderData?.files) {
+    files.push(...folderData.files);
   }
+
+  // Get files from all child folders recursively
+  const getChildFolderIds = (parentId: string): string[] => {
+    const childIds: string[] = [];
+    state.allFolders.forEach(folder => {
+      if (folder.parents && folder.parents.includes(parentId)) {
+        childIds.push(folder.id);
+        // Recursively get grandchildren
+        childIds.push(...getChildFolderIds(folder.id));
+      }
+    });
+    return childIds;
+  };
+
+  const childFolderIds = getChildFolderIds(folderId);
+  childFolderIds.forEach(childId => {
+    const childFolderData = state.folderCache.get(childId);
+    if (childFolderData?.files) {
+      files.push(...childFolderData.files);
+    }
+  });
+
+  return files;
 };
 
 const selectFolder = (folderId: string | null): void => {
-  // Update active state
-  document.querySelectorAll('.folder-item').forEach(item => {
-    item.classList.remove('active');
-  });
-
   if (folderId) {
-    const selectedItem = document.querySelector(
-      `[data-folder-id="${folderId}"]`
-    );
-    selectedItem?.classList.add('active');
-
     const folderData = state.folderCache.get(folderId);
     const folderName = folderData?.name || 'Kansio';
 
     state.currentFolderFilter = folderId;
     folderBrowserService.setCurrentFolder(folderId);
 
-    // Filter files to show only those in selected folder and subfolders
-    state.filteredFiles = folderData?.files || [];
+    // Update folder chips to show active state
+    displayFolderChips();
+
+    // Filter files to show those in selected folder and ALL subfolders
+    state.filteredFiles = getFilesInFolderRecursive(folderId);
 
     // Update section title
     if (mainSectionTitle) {
-      mainSectionTitle.textContent = `📁 ${folderName}`;
+      mainSectionTitle.textContent = `📁 ${folderName} + alikansiot`;
     }
 
     updateStatus(
-      `Näytetään kansio: ${folderName} (${state.filteredFiles.length} tiedostoa)`,
+      `Näytetään kansio: ${folderName} ja alikansiot (${state.filteredFiles.length} tiedostoa)`,
       'info'
     );
     showToast(
       'Kansio valittu',
-      `${folderName} - ${state.filteredFiles.length} tiedostoa`,
+      `${folderName} + alikansiot - ${state.filteredFiles.length} tiedostoa`,
       'info',
       2000
     );
   } else {
     // Show all files
-    const allFilesItem = document.querySelector('.folder-item.all-files');
-    allFilesItem?.classList.add('active');
-
     state.currentFolderFilter = null;
     folderBrowserService.setCurrentFolder(null);
     state.filteredFiles = [...state.allFiles];
+
+    // Update folder chips to show active state
+    displayFolderChips();
 
     if (mainSectionTitle) {
       mainSectionTitle.textContent = 'Kaikki tiedostot';
@@ -820,9 +1178,11 @@ const selectFolder = (folderId: string | null): void => {
     );
   }
 
+  // Reset to first page when folder selection changes
+  state.currentPage = 1;
+
   // Update displays
   displayFiles();
-  displayCategories();
   updateFileCount();
 };
 

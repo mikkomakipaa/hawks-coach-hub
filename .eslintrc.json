@@ -9,19 +9,17 @@
     "gapi": "readonly",
     "google": "readonly",
     "NodeJS": "readonly",
-    "FrameRequestCallback": "readonly"
+    "FrameRequestCallback": "readonly",
+    "NodeListOf": "readonly",
+    "HTMLElementTagNameMap": "readonly"
   },
-  "extends": [
-    "eslint:recommended"
-  ],
+  "extends": ["eslint:recommended"],
   "parser": "@typescript-eslint/parser",
   "parserOptions": {
     "ecmaVersion": 2022,
     "sourceType": "module"
   },
-  "plugins": [
-    "@typescript-eslint"
-  ],
+  "plugins": ["@typescript-eslint"],
   "rules": {
     // General rules
     "no-console": "warn",
@@ -33,7 +31,7 @@
     "prefer-template": "error",
     "eqeqeq": ["error", "always"],
     "curly": ["error", "multi-line"],
-    
+
     // Security
     "no-eval": "error",
     "no-implied-eval": "error",
@@ -50,7 +48,7 @@
   ],
   "ignorePatterns": [
     "dist/",
-    "build/", 
+    "build/",
     "coverage/",
     "node_modules/",
     "*.min.js"

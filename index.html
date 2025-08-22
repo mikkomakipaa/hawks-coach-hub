@@ -14,7 +14,6 @@
     <meta name="author" content="Hawks Helsinki" />
     <title>Hawks Helsinki - Valmennuskeskus</title>
     <link rel="stylesheet" href="styles-minimal.css" />
-    <link rel="stylesheet" href="/src/styles/folder-browser.css" />
     <link rel="icon" type="image/png" href="hawks.png" />
   </head>
   <body>
@@ -53,63 +52,43 @@
     </header>
 
     <main>
-      <div class="search-status-container">
-        <div class="search-section">
-          <div class="search-wrapper">
-            <label for="searchInput" class="sr-only"
-              >Etsi harjoitusmateriaaleja</label
-            >
-            <input
-              type="text"
-              id="searchInput"
-              placeholder="Etsi harjoituksia, taktiikkaa, harjoitusohjelmia..."
-              aria-label="Etsi harjoitusmateriaaleja"
-            />
-          </div>
-          <button
-            id="refreshButton"
-            class="refresh-btn"
-            aria-label="Päivitä tiedostolista"
-          >
-            Päivitä
-          </button>
-        </div>
-        <div class="status-content">
-          <div id="statusText">Loading...</div>
-        </div>
-      </div>
-
-      <!-- Folder Quick Access -->
-      <div class="folder-chips-bar" id="folderChipsBar" style="display: none">
-        <div class="folder-chips" id="folderChips"></div>
-      </div>
-
       <!-- Main Content Layout -->
       <div class="main-container">
-        <!-- Folder Browser Sidebar -->
-        <aside class="folder-browser">
-          <div class="folder-browser-header">
-            <h3>📁 Kansiot</h3>
+        <div class="search-status-container">
+          <div class="search-section">
+            <div class="search-wrapper">
+              <label for="searchInput" class="sr-only"
+                >Etsi harjoitusmateriaaleja</label
+              >
+              <input
+                type="text"
+                id="searchInput"
+                placeholder="Etsi harjoituksia, taktiikkaa, harjoitusohjelmia..."
+                aria-label="Etsi harjoitusmateriaaleja"
+              />
+            </div>
             <button
-              id="toggleFolderBrowser"
-              class="toggle-btn"
-              aria-label="Piilota/näytä kansioselain"
+              id="refreshButton"
+              class="refresh-btn"
+              aria-label="Päivitä tiedostolista"
             >
-              ←
+              Päivitä
             </button>
           </div>
-          <div class="folder-browser-content">
-            <div class="folder-item all-files active" data-folder-id="">
-              <div class="folder-icon">📂</div>
-              <div class="folder-info">
-                <div class="folder-name">Kaikki tiedostot</div>
-                <div class="folder-count" id="allFilesCount">0 tiedostoa</div>
-              </div>
-            </div>
-            <div id="foldersContainer" class="folders-list"></div>
-          </div>
-        </aside>
 
+          <!-- Folder Quick Access - Integrated -->
+          <div
+            class="folder-chips-bar"
+            id="folderChipsBar"
+            style="display: none"
+          >
+            <div class="folder-chips" id="folderChips"></div>
+          </div>
+
+          <div class="status-content">
+            <div id="statusText">Loading...</div>
+          </div>
+        </div>
         <!-- Main Content Area -->
         <div class="content-area">
           <div class="content-header">
@@ -122,13 +101,57 @@
             </div>
           </div>
 
-          <div class="files-section">
-            <div class="file-list-simple" id="allFilesList"></div>
-            <div class="file-count" id="fileCount">0 tiedostoa löytyi</div>
+          <!-- Session Planning Bar -->
+          <div
+            id="session-planning-bar"
+            class="session-planning-bar"
+            style="display: none"
+          >
+            <div class="session-info">
+              <span class="session-title">🏒 Harjoitussuunnittelu</span>
+              <span class="session-count-text"
+                ><span id="session-count">0</span> materiaalia valittuna</span
+              >
+            </div>
+            <div class="session-actions">
+              <button
+                class="planning-toggle-btn"
+                onclick="window.FileActions.togglePlanningMode()"
+              >
+                Lopeta suunnittelu
+              </button>
+              <button
+                class="export-session-btn"
+                onclick="window.FileActions.exportSession()"
+              >
+                Vie suunnitelma
+              </button>
+            </div>
+            <div
+              id="session-materials-list"
+              class="session-materials-list"
+            ></div>
           </div>
 
-          <div class="categories-section">
-            <div id="categoriesList"></div>
+          <div class="files-section">
+            <div class="file-list-simple" id="allFilesList"></div>
+            <div class="pagination-container">
+              <div class="pagination-info">
+                <span id="fileCount">0 tiedostoa löytyi</span>
+                <span class="pagination-details" id="paginationInfo"></span>
+              </div>
+              <div
+                class="pagination-controls"
+                id="paginationControls"
+                style="display: none"
+              >
+                <button id="prevPage" class="pagination-btn" disabled>
+                  ‹ Edellinen
+                </button>
+                <div class="pagination-pages" id="paginationPages"></div>
+                <button id="nextPage" class="pagination-btn">Seuraava ›</button>
+              </div>
+            </div>
           </div>
         </div>
       </div>

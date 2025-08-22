@@ -14,17 +14,15 @@ export class SearchService {
     }
 
     const term = searchTerm.toLowerCase().trim();
-    return files.filter(file =>
-      file.name.toLowerCase().includes(term)
-    );
+    return files.filter(file => file.name.toLowerCase().includes(term));
   }
 
   /**
    * Filter files by folder
    */
   filterFilesByFolder(
-    files: DriveFile[], 
-    folderId: string | null, 
+    files: DriveFile[],
+    folderId: string | null,
     folderCache: Map<string, DriveFolder>
   ): DriveFile[] {
     if (!folderId) {
@@ -58,6 +56,7 @@ export class SearchService {
   /**
    * Debounce function for search input
    */
+  // eslint-disable-next-line no-unused-vars
   debounce<T extends (...args: any[]) => void>(func: T, wait: number): T {
     let timeout: NodeJS.Timeout;
     return ((...args: any[]) => {
