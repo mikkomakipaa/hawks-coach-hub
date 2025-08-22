@@ -331,25 +331,47 @@ async function loadDriveFiles() {
     showSkeletonLoading();
     
     try {
-        // Load all folders first
-        const foldersResponse = await gapi.client.drive.files.list({
-            pageSize: 1000,
-            fields: 'nextPageToken, files(id, name, mimeType, webViewLink, parents)',
-            orderBy: 'name',
-            q: "mimeType = 'application/vnd.google-apps.folder'"
-        });
-
-        const folders = foldersResponse.result.files || [];
+        // Load all folders with pagination
+        let allFoldersFromAPI = [];
+        let nextPageToken = null;
         
-        // Load all files (this will get files from all folders including subfolders)
-        const filesResponse = await gapi.client.drive.files.list({
-            pageSize: 1000,
-            fields: 'nextPageToken, files(id, name, mimeType, modifiedTime, webViewLink, parents)',
-            orderBy: 'name',
-            q: "mimeType != 'application/vnd.google-apps.folder'"
-        });
+        do {
+            const foldersResponse = await gapi.client.drive.files.list({
+                pageSize: 1000,
+                pageToken: nextPageToken,
+                fields: 'nextPageToken, files(id, name, mimeType, webViewLink, parents)',
+                orderBy: 'name',
+                q: "mimeType = 'application/vnd.google-apps.folder'"
+            });
+            
+            const folders = foldersResponse.result.files || [];
+            allFoldersFromAPI.push(...folders);
+            nextPageToken = foldersResponse.result.nextPageToken;
+        } while (nextPageToken);
+        
+        // Load all files with pagination
+        let allFilesFromAPI = [];
+        nextPageToken = null;
+        
+        do {
+            const filesResponse = await gapi.client.drive.files.list({
+                pageSize: 1000,
+                pageToken: nextPageToken,
+                fields: 'nextPageToken, files(id, name, mimeType, modifiedTime, webViewLink, parents)',
+                orderBy: 'name',
+                q: "mimeType != 'application/vnd.google-apps.folder'"
+            });
+            
+            const files = filesResponse.result.files || [];
+            allFilesFromAPI.push(...files);
+            nextPageToken = filesResponse.result.nextPageToken;
+        } while (nextPageToken);
 
-        const files = filesResponse.result.files;
+        const files = allFilesFromAPI;
+        const folders = allFoldersFromAPI;
+        
+        console.log(`API returned ${files ? files.length : 0} total files from all folders`);
+        console.log(`API returned ${folders ? folders.length : 0} total folders`);
         
         if (files && files.length > 0) {
             allFiles = files.filter(file => 
@@ -357,6 +379,9 @@ async function loadDriveFiles() {
                 !file.name.startsWith('.') && 
                 file.mimeType !== 'application/vnd.google-apps.script'
             );
+            
+            console.log(`Filtered to ${allFiles.length} files after removing system files`);
+            console.log('Sample files:', allFiles.slice(0, 5).map(f => ({ name: f.name, parents: f.parents })));
             
             filteredFiles = [...allFiles];
         } else {
@@ -366,6 +391,8 @@ async function loadDriveFiles() {
         
         if (folders && folders.length > 0) {
             allFolders = folders.filter(folder => !folder.name.startsWith('.'));
+            console.log(`Found ${allFolders.length} folders`);
+            console.log('Sample folders:', allFolders.slice(0, 5).map(f => ({ name: f.name, id: f.id })));
             // Cache folder structure
             cacheFolderStructure();
         } else {
@@ -636,19 +663,10 @@ function createCategorySection(categoryName, files) {
     const fileList = document.createElement('div');
     fileList.className = 'file-list';
     
-    files.slice(0, 10).forEach(file => { // Show max 10 files per category
+    files.forEach(file => { // Show all files in category
         const fileItem = createFileItem(file);
         fileList.appendChild(fileItem);
     });
-    
-    if (files.length > 10) {
-        const moreText = document.createElement('div');
-        moreText.textContent = `... and ${files.length - 10} more files`;
-        moreText.style.padding = '1rem';
-        moreText.style.fontStyle = 'italic';
-        moreText.style.color = '#666';
-        fileList.appendChild(moreText);
-    }
     
     categoryDiv.appendChild(fileList);
     return categoryDiv;

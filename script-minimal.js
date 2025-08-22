@@ -363,69 +363,76 @@ async function getAllFilesWithPagination(query, fields = 'nextPageToken, files(i
     return allFiles;
 }
 
+/**
+ * Recursively load files from subfolders and their nested subfolders
+ */
+async function loadFilesFromSubfoldersRecursively(folders) {
+    let allFiles = [];
+    
+    for (const folder of folders) {
+        try {
+            // Load files directly in this folder
+            const files = await getAllFilesWithPagination(`"${folder.id}" in parents and mimeType != 'application/vnd.google-apps.folder'`);
+            console.log(`Subfolder "${folder.name}" contains ${files.length} files`);
+            allFiles.push(...files);
+            
+            // Load nested subfolders
+            const nestedSubfolders = await getAllFilesWithPagination(`"${folder.id}" in parents and mimeType = 'application/vnd.google-apps.folder'`);
+            
+            if (nestedSubfolders.length > 0) {
+                console.log(`Subfolder "${folder.name}" has ${nestedSubfolders.length} nested subfolders`);
+                // Recursively load files from nested subfolders
+                const nestedFiles = await loadFilesFromSubfoldersRecursively(nestedSubfolders);
+                allFiles.push(...nestedFiles);
+            }
+        } catch (error) {
+            console.warn(`Error loading files from subfolder "${folder.name}":`, error);
+        }
+    }
+    
+    return allFiles;
+}
+
 async function loadDriveFiles() {
     updateStatus('Ladataan tiedostoja Google Drivesta...', 'loading');
     showToast('Ladataan tiedostoja', 'Haetaan harjoitusmateriaaleja...', 'info', 2000);
     
     try {
-        // Load files from source folder and its subfolders (focused approach)
-        console.log(`Loading files and subfolders from source folder: ${SOURCE_FOLDER_ID}`);
+        console.log('Loading all files and folders from Google Drive...');
         
-        const [sourceFiles, subfolders] = await Promise.all([
-            // Files directly in source folder
-            getAllFilesWithPagination(`"${SOURCE_FOLDER_ID}" in parents and mimeType != 'application/vnd.google-apps.folder'`),
-            // Subfolders of source folder
-            getAllFilesWithPagination(`"${SOURCE_FOLDER_ID}" in parents and mimeType = 'application/vnd.google-apps.folder'`)
+        // Load all files and folders from entire Drive (more reliable)
+        const [allFilesFromAPI, allFoldersFromAPI] = await Promise.all([
+            getAllFilesWithPagination(`mimeType != 'application/vnd.google-apps.folder'`),
+            getAllFilesWithPagination(`mimeType = 'application/vnd.google-apps.folder'`)
         ]);
         
-        console.log(`Found ${sourceFiles.length} files in source folder and ${subfolders.length} subfolders`);
-        console.log('Source files:', sourceFiles.map(f => f.name));
-        console.log('Subfolders:', subfolders.map(f => f.name));
+        console.log(`Found ${allFilesFromAPI.length} files and ${allFoldersFromAPI.length} folders in Drive`);
+        console.log('Sample files:', allFilesFromAPI.slice(0, 5).map(f => ({ name: f.name, parents: f.parents })));
+        console.log('Sample folders:', allFoldersFromAPI.slice(0, 5).map(f => ({ name: f.name, id: f.id })));
         
-        // Load files from all subfolders
-        let subfolderFiles = [];
-        if (subfolders.length > 0) {
-            console.log(`Loading files from ${subfolders.length} subfolders...`);
-            
-            const subfolderFilePromises = subfolders.map(async (folder) => {
-                const files = await getAllFilesWithPagination(`"${folder.id}" in parents and mimeType != 'application/vnd.google-apps.folder'`);
-                console.log(`Subfolder "${folder.name}" contains ${files.length} files`);
-                return files;
-            });
-            
-            const subfolderFileArrays = await Promise.all(subfolderFilePromises);
-            subfolderFiles = subfolderFileArrays.flat();
-            console.log(`Total files in subfolders: ${subfolderFiles.length}`);
-        }
-        
-        // Combine files from source folder and all its subfolders
-        const allFoundFiles = [...sourceFiles, ...subfolderFiles];
-        // Use only subfolders from source folder for chips (focused approach)
-        const folders = subfolders;
-        
-        console.log(`Total files found in source folder tree: ${allFoundFiles.length}`);
-        
-        if (allFoundFiles && allFoundFiles.length > 0) {
-            // Assign to global allFiles variable
+        // Filter and assign files
+        if (allFilesFromAPI && allFilesFromAPI.length > 0) {
             allFiles.length = 0; // Clear array
-            allFiles.push(...allFoundFiles.filter(file => 
+            allFiles.push(...allFilesFromAPI.filter(file => 
                 !file.name.startsWith('.') && 
                 file.mimeType !== 'application/vnd.google-apps.script'
             ));
             
+            console.log(`Filtered to ${allFiles.length} files after removing system files`);
             filteredFiles = [...allFiles];
         } else {
-            allFiles.length = 0; // Clear array
+            allFiles.length = 0;
             filteredFiles = [];
         }
         
-        if (folders && folders.length > 0) {
-            // Assign to global allFolders variable
+        // Filter and assign folders
+        if (allFoldersFromAPI && allFoldersFromAPI.length > 0) {
             allFolders.length = 0; // Clear array
-            allFolders.push(...folders.filter(folder => !folder.name.startsWith('.')));
+            allFolders.push(...allFoldersFromAPI.filter(folder => !folder.name.startsWith('.')));
+            console.log(`Found ${allFolders.length} folders after filtering`);
             cacheFolderStructure();
         } else {
-            allFolders.length = 0; // Clear array
+            allFolders.length = 0;
         }
         
         displayFiles();
@@ -433,11 +440,11 @@ async function loadDriveFiles() {
         updateFileCount();
         
         if (allFiles.length === 0) {
-            updateStatus('Tiedostoja ei löytynyt valitusta kansiosta', 'info');
-            showToast('Tiedostoja ei löytynyt', 'Valitusta kansiosta ei löytynyt harjoitusmateriaaleja', 'info');
+            updateStatus('Tiedostoja ei löytynyt Google Drivestä', 'info');
+            showToast('Tiedostoja ei löytynyt', 'Google Drivestä ei löytynyt tiedostoja', 'info');
         } else {
-            updateStatus(`Ladattiin onnistuneesti ${allFiles.length} harjoitusmateriaalia valitusta kansiosta`, 'success');
-            showToast('Tiedostot ladattu', `Löydettiin ${allFiles.length} harjoitusmateriaalia`, 'success');
+            updateStatus(`Ladattiin onnistuneesti ${allFiles.length} tiedostoa Google Drivestä`, 'success');
+            showToast('Tiedostot ladattu', `Löydettiin ${allFiles.length} tiedostoa`, 'success');
         }
     } catch (error) {
         console.error('Error loading files:', error);
@@ -665,26 +672,64 @@ function cacheFolderStructure() {
     folderCache.clear();
     
     allFolders.forEach(folder => {
-        const filesInFolder = allFiles.filter(file => 
+        // Get files directly in this folder
+        const directFiles = allFiles.filter(file => 
             file.parents && file.parents.includes(folder.id)
+        );
+        
+        // Get all subfolder IDs for this folder recursively
+        const subfolderIds = getSubfolderIds(folder.id);
+        
+        // Get files from all subfolders
+        const subfolderFiles = allFiles.filter(file =>
+            file.parents && file.parents.some(parentId => subfolderIds.includes(parentId))
+        );
+        
+        // Combine direct files and subfolder files
+        const allFolderFiles = [...directFiles, ...subfolderFiles];
+        
+        // Remove duplicates (in case a file has multiple parents)
+        const uniqueFiles = allFolderFiles.filter((file, index, array) =>
+            array.findIndex(f => f.id === file.id) === index
         );
         
         folderCache.set(folder.id, {
             ...folder,
-            fileCount: filesInFolder.length,
-            files: filesInFolder
+            fileCount: uniqueFiles.length,
+            files: uniqueFiles
         });
         
-        console.log(`Folder "${folder.name}" has ${filesInFolder.length} files`);
+        console.log(`Folder "${folder.name}" has ${uniqueFiles.length} files (including subfolders)`);
     });
     
-    console.log(`Välimuistiin tallennettu ${folderCache.size} kansiota tiedostomäärineen`);
+    console.log(`Välimuistiin tallennettu ${folderCache.size} kansiota tiedostomäärineen (mukaan lukien alikansiot)`);
     
     // Debug: Show all folders and their file counts
     const foldersWithFiles = Array.from(folderCache.values()).filter(f => f.fileCount > 0);
     const foldersWithoutFiles = Array.from(folderCache.values()).filter(f => f.fileCount === 0);
     console.log(`Folders with files: ${foldersWithFiles.length}`, foldersWithFiles.map(f => `${f.name} (${f.fileCount})`));
     console.log(`Folders without files: ${foldersWithoutFiles.length}`, foldersWithoutFiles.map(f => f.name));
+}
+
+/**
+ * Get all subfolder IDs recursively for a given folder
+ */
+function getSubfolderIds(folderId) {
+    const subfolderIds = [];
+    
+    // Find direct subfolders
+    const directSubfolders = allFolders.filter(folder =>
+        folder.parents && folder.parents.includes(folderId)
+    );
+    
+    directSubfolders.forEach(subfolder => {
+        subfolderIds.push(subfolder.id);
+        // Recursively get subfolders of this subfolder
+        const nestedSubfolders = getSubfolderIds(subfolder.id);
+        subfolderIds.push(...nestedSubfolders);
+    });
+    
+    return subfolderIds;
 }
 
 function displayFolderNavigation() {
