@@ -14,6 +14,7 @@
     <meta name="author" content="Hawks Helsinki" />
     <title>Hawks Helsinki - Valmennuskeskus</title>
     <link rel="stylesheet" href="styles-minimal.css" />
+    <link rel="stylesheet" href="/src/styles/folder-browser.css" />
     <link rel="icon" type="image/png" href="hawks.png" />
   </head>
   <body>
@@ -83,14 +84,52 @@
         <div class="folder-chips" id="folderChips"></div>
       </div>
 
-      <!-- Simple File List -->
-      <div class="simple-container">
-        <div class="files-section">
-          <div class="file-list-simple" id="allFilesList"></div>
-          <div class="file-count" id="fileCount">0 tiedostoa löytyi</div>
-        </div>
-        <div class="categories-section">
-          <div id="categoriesList"></div>
+      <!-- Main Content Layout -->
+      <div class="main-container">
+        <!-- Folder Browser Sidebar -->
+        <aside class="folder-browser">
+          <div class="folder-browser-header">
+            <h3>📁 Kansiot</h3>
+            <button
+              id="toggleFolderBrowser"
+              class="toggle-btn"
+              aria-label="Piilota/näytä kansioselain"
+            >
+              ←
+            </button>
+          </div>
+          <div class="folder-browser-content">
+            <div class="folder-item all-files active" data-folder-id="">
+              <div class="folder-icon">📂</div>
+              <div class="folder-info">
+                <div class="folder-name">Kaikki tiedostot</div>
+                <div class="folder-count" id="allFilesCount">0 tiedostoa</div>
+              </div>
+            </div>
+            <div id="foldersContainer" class="folders-list"></div>
+          </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <div class="content-area">
+          <div class="content-header">
+            <h2 id="mainSectionTitle">Kaikki tiedostot</h2>
+            <div class="content-stats">
+              <span id="totalFiles">0</span> tiedostoa,
+              <span id="totalFolders">0</span> kansiota
+              <span class="separator">|</span>
+              <span id="currentViewCount">0</span> näytetään
+            </div>
+          </div>
+
+          <div class="files-section">
+            <div class="file-list-simple" id="allFilesList"></div>
+            <div class="file-count" id="fileCount">0 tiedostoa löytyi</div>
+          </div>
+
+          <div class="categories-section">
+            <div id="categoriesList"></div>
+          </div>
         </div>
       </div>
     </main>
