@@ -8,6 +8,7 @@ on:
 permissions:
   contents: write
   pull-requests: write
+  actions: write
 
 jobs:
   release:
@@ -39,6 +40,7 @@ jobs:
         with:
           release-type: node
           package-name: hawks-coach-hub
+          token: ${{ secrets.GITHUB_TOKEN }}
           changelog-types: >
             [
               {"type":"feat","section":"Features","hidden":false},
