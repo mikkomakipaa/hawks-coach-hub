@@ -1,91 +1,138 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="fi">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Hawks Helsinki Valmennuskeskus - Käytä harjoitusmateriaaleja, harjoitusohjeita ja taktisia materiaaleja Google Drivestä">
-    <meta name="keywords" content="salibandy, valmennus, hawks helsinki, harjoitus, drillaus, taktiikka">
-    <meta name="author" content="Hawks Helsinki">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Hawks Helsinki Valmennuskeskus - Käytä harjoitusmateriaaleja, harjoitusohjeita ja taktisia materiaaleja Google Drivestä"
+    />
+    <meta
+      name="keywords"
+      content="salibandy, valmennus, hawks helsinki, harjoitus, drillaus, taktiikka"
+    />
+    <meta name="author" content="Hawks Helsinki" />
     <title>Hawks Helsinki - Valmennuskeskus</title>
-    <link rel="stylesheet" href="styles-minimal.css">
-    <link rel="icon" type="image/png" href="hawks.png">
-</head>
-<body>
+    <link rel="stylesheet" href="styles-minimal.css" />
+    <link rel="icon" type="image/png" href="hawks.png" />
+  </head>
+  <body>
     <header>
-        <div class="header-content">
-            <div class="logo-section">
-                <img src="hawks.png" 
-                     alt="Hawks Helsinki Logo" 
-                     class="hawks-logo"
-                     onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
-                <div class="floorball-icon" style="display: none;"></div>
-                <div class="title-group">
-                    <h1>Hawks Valmennuskeskus</h1>
-                    <p class="subtitle">Harjoitusmateriaalit & Harjoitusohjeet</p>
-                </div>
-            </div>
-            <div class="auth-section">
-                <div id="authorize_div" style="display: none;">
-                    <button id="authorize_button" class="auth-btn" aria-label="Kirjaudu Google Driveen">
-                        Kirjaudu sisään
-                    </button>
-                </div>
-                <div id="signout_div" style="display: none;">
-                    <button id="signout_button" class="auth-btn signout">
-                        Kirjaudu ulos
-                    </button>
-                </div>
-            </div>
+      <div class="header-content">
+        <div class="logo-section">
+          <img
+            src="hawks.png"
+            alt="Hawks Helsinki Logo"
+            class="hawks-logo"
+            onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"
+          />
+          <div class="floorball-icon" style="display: none"></div>
+          <div class="title-group">
+            <h1>Hawks Valmennuskeskus</h1>
+            <p class="subtitle">Harjoitusmateriaalit & Harjoitusohjeet</p>
+          </div>
         </div>
+        <div class="auth-section">
+          <div id="authorize_div" style="display: none">
+            <button
+              id="authorize_button"
+              class="auth-btn"
+              aria-label="Kirjaudu Google Driveen"
+            >
+              Kirjaudu sisään
+            </button>
+          </div>
+          <div id="signout_div" style="display: none">
+            <button id="signout_button" class="auth-btn signout">
+              Kirjaudu ulos
+            </button>
+          </div>
+        </div>
+      </div>
     </header>
 
     <main>
-        <div class="search-status-container">
-            <div class="search-section">
-                <div class="search-wrapper">
-                    <label for="searchInput" class="sr-only">Etsi harjoitusmateriaaleja</label>
-                    <input type="text" id="searchInput" placeholder="Etsi harjoituksia, taktiikkaa, harjoitusohjelmia..." aria-label="Etsi harjoitusmateriaaleja">
-                </div>
-                <button id="refreshButton" class="refresh-btn" aria-label="Päivitä tiedostolista">
-                    Päivitä
-                </button>
-            </div>
+      <div class="search-status-container">
+        <div class="search-section">
+          <div class="search-wrapper">
+            <label for="searchInput" class="sr-only"
+              >Etsi harjoitusmateriaaleja</label
+            >
+            <input
+              type="text"
+              id="searchInput"
+              placeholder="Etsi harjoituksia, taktiikkaa, harjoitusohjelmia..."
+              aria-label="Etsi harjoitusmateriaaleja"
+            />
+          </div>
+          <button
+            id="refreshButton"
+            class="refresh-btn"
+            aria-label="Päivitä tiedostolista"
+          >
+            Päivitä
+          </button>
         </div>
+        <div class="status-content">
+          <div id="statusText">Loading...</div>
+        </div>
+      </div>
 
-        <!-- Folder Quick Access -->
-        <div class="folder-chips-bar" id="folderChipsBar" style="display: none;">
-            <div class="folder-chips" id="folderChips"></div>
-        </div>
+      <!-- Folder Quick Access -->
+      <div class="folder-chips-bar" id="folderChipsBar" style="display: none">
+        <div class="folder-chips" id="folderChips"></div>
+      </div>
 
-        <!-- Simple File List -->
-        <div class="simple-container">
-            <div class="files-section">
-                <div class="file-list-simple" id="allFilesList"></div>
-                <div class="file-count" id="fileCount">0 tiedostoa löytyi</div>
-            </div>
+      <!-- Simple File List -->
+      <div class="simple-container">
+        <div class="files-section">
+          <div class="file-list-simple" id="allFilesList"></div>
+          <div class="file-count" id="fileCount">0 tiedostoa löytyi</div>
         </div>
+        <div class="categories-section">
+          <div id="categoriesList"></div>
+        </div>
+      </div>
     </main>
 
     <!-- Toast Notification Container -->
     <div class="toast-container" id="toastContainer"></div>
 
     <footer>
-        <div class="footer-content">
-            <div class="footer-section">
-                <span>Hawks Helsinki Valmennuskeskus</span>
-            </div>
-            <div class="footer-section">
-                <span>© 2025 Mikko Mäkipää | <a href="https://github.com/mikkomakipaa/hawks-coach-hub" target="_blank" rel="noopener noreferrer">GitHub</a></span>
-            </div>
-            <div class="footer-section">
-                <span>Toimii Google Drive API:lla</span>
-            </div>
+      <div class="footer-content">
+        <div class="footer-section">
+          <span>Hawks Helsinki Valmennuskeskus</span>
         </div>
+        <div class="footer-section">
+          <span
+            >© 2025 Mikko Mäkipää |
+            <a
+              href="https://github.com/mikkomakipaa/hawks-coach-hub"
+              target="_blank"
+              rel="noopener noreferrer"
+              >GitHub</a
+            ></span
+          >
+        </div>
+        <div class="footer-section">
+          <span>Toimii Google Drive API:lla</span>
+        </div>
+      </div>
     </footer>
 
-    <script src="env-loader.js"></script>
-    <script src="https://apis.google.com/js/api.js" async defer onload="window.gapiLoaded = true"></script>
-    <script src="https://accounts.google.com/gsi/client" async defer onload="window.gisLoaded = true"></script>
+    <script src="/env-loader.js"></script>
+    <script
+      src="https://apis.google.com/js/api.js"
+      async
+      defer
+      onload="window.gapiLoaded = true"
+    ></script>
+    <script
+      src="https://accounts.google.com/gsi/client"
+      async
+      defer
+      onload="window.gisLoaded = true"
+    ></script>
     <script type="module" src="/src/main.ts"></script>
-</body>
+  </body>
 </html>
