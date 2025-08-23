@@ -8,9 +8,24 @@ yarn-error.log*
 .env*
 !.env.example
 
-# Service Account Credentials (sensitive)
-*.json
+# Service Account Credentials & API Keys (NEVER COMMIT)
+*service-account*.json
+*service_account*.json
 coach-hub-*.json
+*.pem
+*.p12
+*.key
+*-key.json
+*_key.json
+
+# Allow specific project JSON files
+!package*.json
+!tsconfig*.json
+!.eslintrc.json
+!.prettierrc.json
+!.commitlintrc.json
+!.lintstagedrc.json
+!vercel.json
 
 # Build outputs
 dist/
