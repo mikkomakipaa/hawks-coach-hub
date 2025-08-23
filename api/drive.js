@@ -23,9 +23,13 @@ if (process.env.GOOGLE_SERVICE_ACCOUNT_KEY) {
 } else {
   // Try default local paths (for development)
   const possiblePaths = [
-    path.resolve('../coach-hub-469817-5c7c8183293c.json'), // From api/ folder
-    path.resolve('./coach-hub-469817-5c7c8183293c.json'),  // From root folder
-    path.resolve(__dirname, '../coach-hub-469817-5c7c8183293c.json') // Relative to api folder
+    path.resolve('../coach-hub-469817-02211c9252a2.json'), // From api/ folder
+    path.resolve('./coach-hub-469817-02211c9252a2.json'),  // From root folder  
+    path.resolve(__dirname, '../coach-hub-469817-02211c9252a2.json'), // Relative to api folder
+    // Fallback to old filename for compatibility
+    path.resolve('../coach-hub-469817-5c7c8183293c.json'),
+    path.resolve('./coach-hub-469817-5c7c8183293c.json'),
+    path.resolve(__dirname, '../coach-hub-469817-5c7c8183293c.json')
   ];
   
   for (const credPath of possiblePaths) {

@@ -7,7 +7,7 @@
 **⚠️ CRITICAL**: This setting must be enabled for the release workflow to work.
 
 1. Go to your repository on GitHub
-2. Click **Settings** → **Actions** → **General**  
+2. Click **Settings** → **Actions** → **General**
 3. Scroll down to **Workflow permissions**
 4. Enable: **"Allow GitHub Actions to create and approve pull requests"**
 5. Click **Save**
@@ -33,6 +33,7 @@
 ## Release-Please Workflow
 
 The release workflow will:
+
 1. **Analyze commits** since last release
 2. **Create release PR** with version bump and changelog
 3. **Auto-merge** when PR is approved (if branch protection allows)
@@ -42,20 +43,25 @@ The release workflow will:
 ## Troubleshooting Common Issues
 
 ### "GitHub Actions is not permitted to create or approve pull requests"
+
 - **Solution**: Enable the setting in Step 1 above
 
 ### "Release Please failed to create PR"
+
 - **Cause**: No conventional commits since last release
 - **Solution**: Make commits with prefixes: `feat:`, `fix:`, `docs:`, etc.
 
 ### "Deploy to GitHub Pages failed"
+
 - **Cause**: GitHub Pages not enabled or wrong source
 - **Solution**: Go to Settings → Pages → Source: GitHub Actions
 
-### "Codecov upload failed" 
+### "Codecov upload failed"
+
 - **Solution**: Already handled gracefully in CI workflow
 
 ### "Lighthouse CI failed"
+
 - **Solution**: Already handled gracefully with dynamic config
 
 ## Manual Release (If Automated Fails)
@@ -72,7 +78,7 @@ npx release-please release-pr --token=$GITHUB_TOKEN
 ## Workflow Files Status
 
 - ✅ `ci.yml` - Robust with graceful failures
-- ✅ `security.yml` - Weekly scans with proper permissions  
+- ✅ `security.yml` - Weekly scans with proper permissions
 - ✅ `release.yml` - Enhanced permissions, ready for release-please
 
 ## Next Steps
@@ -83,3 +89,10 @@ npx release-please release-pr --token=$GITHUB_TOKEN
 4. Check Actions tab for release PR creation
 5. Review and merge the release PR
 6. Verify deployment to GitHub Pages
+
+---
+
+**🏒 Automated excellence for Hawks Helsinki development**
+
+_Last updated: August 2025_
+_Hawks Coach Hub CI/CD Pipeline v1.0_
