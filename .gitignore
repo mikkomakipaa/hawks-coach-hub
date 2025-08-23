@@ -8,6 +8,10 @@ yarn-error.log*
 .env*
 !.env.example
 
+# Service Account Credentials (sensitive)
+*.json
+coach-hub-*.json
+
 # Build outputs
 dist/
 build/
