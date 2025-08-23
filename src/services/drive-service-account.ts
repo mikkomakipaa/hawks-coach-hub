@@ -21,22 +21,12 @@ export class ServiceAccountDriveService {
   /**
    * Load all files and folders from Hawks folder via service account
    */
-  async loadAllFilesAndFolders(): Promise<{ files: DriveFile[], folders: DriveFolder[] }> {
+  async loadAllFilesAndFolders(refresh: boolean = false): Promise<{ files: DriveFile[], folders: DriveFolder[], cached?: boolean }> {
     try {
-      console.log('🔍 Loading files and folders via service account...');
-      console.log('📡 API endpoint:', `${this.API_BASE}?type=both`);
+      console.log('📡 Fetching data from service account API...');
       
-      console.log('⏳ Making fetch request...');
-      console.log('🧪 Testing with simple endpoint first...');
-      
-      // Test with simple endpoint first
-      const testResponse = await fetch('/api/test');
-      console.log('🧪 Test response status:', testResponse.status);
-      const testData = await testResponse.json();
-      console.log('🧪 Test data:', testData);
-      
-      console.log('📤 Making main API request...');
-      const response = await fetch(`${this.API_BASE}?type=both`, {
+      const url = `${this.API_BASE}?type=both${refresh ? '&refresh=true' : ''}`;
+      const response = await fetch(url, {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
@@ -46,9 +36,6 @@ export class ServiceAccountDriveService {
         console.error('❌ Fetch error:', error);
         throw error;
       });
-      
-      console.log('📥 Fetch completed, response:', response.status, response.statusText);
-      console.log('📥 Response headers:', Object.fromEntries(response.headers.entries()));
       
       if (!response.ok) {
         const errorText = await response.text().catch(() => 'Unknown error');
@@ -62,20 +49,14 @@ export class ServiceAccountDriveService {
         throw new Error(`API request failed: ${response.status} ${response.statusText}\n${errorText}`);
       }
       
-      console.log('🔄 Parsing JSON response...');
-      let data;
-      try {
-        data = await response.json();
-      } catch (parseError) {
-        console.error('❌ JSON parsing failed:', parseError);
-        throw new Error('Failed to parse API response as JSON');
-      }
+      const data = await response.json();
       
-      console.log(`📊 Service account loaded: ${data.files?.length || 0} files, ${data.folders?.length || 0} folders`);
+      console.log(`📊 Loaded ${data.files?.length || 0} files, ${data.folders?.length || 0} folders ${data.cached ? '(cached)' : '(fresh from Google Drive)'}`);
       
       return {
         files: data.files || [],
-        folders: data.folders || []
+        folders: data.folders || [],
+        cached: data.cached || false
       };
       
     } catch (error) {

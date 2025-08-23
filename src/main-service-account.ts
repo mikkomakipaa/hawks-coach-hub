@@ -18,6 +18,7 @@ import {
   FolderBrowserService,
   type FolderTreeNode,
 } from '@/components/folder-browser';
+import { createElement } from '@/utils/dom';
 
 // Simplified Application State (no auth needed)
 interface AppState {
@@ -49,6 +50,124 @@ const fileDisplayService = new FileDisplayService();
 const searchService = new SearchService();
 const folderBrowserService = new FolderBrowserService();
 
+// Session Planning State
+const sessionPlanningState = {
+  isActive: false,
+  selectedFiles: new Set<string>(),
+  sessionName: '',
+};
+
+// Global FileActions for action buttons
+declare global {
+  interface Window {
+    FileActions: {
+      addToSession: (fileId: string) => void;
+      downloadFile: (url: string) => void;
+      togglePlanningMode: () => void;
+      exportSession: () => void;
+      removeFromSession: (fileId: string) => void;
+    };
+  }
+}
+
+window.FileActions = {
+  addToSession: (fileId: string) => {
+    if (sessionPlanningState.isActive) {
+      sessionPlanningState.selectedFiles.add(fileId);
+      updateSessionDisplay();
+      showToast(
+        'Tiedosto lisätty',
+        'Materiaali lisätty harjoitussuunnitelmaan',
+        'success',
+        2000
+      );
+    } else {
+      // Auto-enable planning mode and add file
+      sessionPlanningState.isActive = true;
+      sessionPlanningState.selectedFiles.add(fileId);
+      updatePlanningModeUI();
+      updateSessionDisplay();
+      showToast(
+        'Harjoitussuunnittelu aloitettu',
+        'Ensimmäinen materiaali lisätty',
+        'info',
+        3000
+      );
+    }
+  },
+
+  downloadFile: (url: string) => {
+    window.open(url, '_blank');
+  },
+
+  togglePlanningMode: () => {
+    sessionPlanningState.isActive = !sessionPlanningState.isActive;
+    if (!sessionPlanningState.isActive) {
+      sessionPlanningState.selectedFiles.clear();
+    }
+    updatePlanningModeUI();
+    updateSessionDisplay();
+  },
+
+  exportSession: () => {
+    if (sessionPlanningState.selectedFiles.size === 0) {
+      showToast(
+        'Ei materiaaleja',
+        'Lisää ensin materiaaleja harjoitukseen',
+        'warning',
+        3000
+      );
+      return;
+    }
+
+    const selectedFilesList = Array.from(sessionPlanningState.selectedFiles)
+      .map(fileId => state.allFiles.find(f => f.id === fileId))
+      .filter(Boolean)
+      .map(file => `• ${file!.name}\n  🔗 ${file!.webViewLink}`)
+      .join('\n\n');
+
+    const sessionData = `HAWKS HARJOITUSSUUNNITELMA
+Luotu: ${new Date().toLocaleDateString('fi-FI')}
+
+MATERIAALIT (${sessionPlanningState.selectedFiles.size} kpl):
+${selectedFilesList}
+
+----
+Luotu Hawks Valmennuskeskuksessa
+📁 Kaikki materiaalit: https://drive.google.com/drive/folders/1ZF6AHx62MXfkgs7-xbrMxj4r9sdyKzUb`;
+
+    navigator.clipboard
+      .writeText(sessionData)
+      .then(() => {
+        showToast(
+          'Suunnitelma kopioitu',
+          'Harjoitussuunnitelma kopioitu leikepöydälle',
+          'success',
+          3000
+        );
+      })
+      .catch(() => {
+        showToast(
+          'Virhe',
+          'Harjoitussuunnitelma kopioitu leikepöydälle',
+          'error',
+          3000
+        );
+      });
+  },
+
+  removeFromSession: (fileId: string) => {
+    sessionPlanningState.selectedFiles.delete(fileId);
+    updateSessionDisplay();
+    showToast(
+      'Materiaali poistettu',
+      'Materiaali poistettu harjoitussuunnitelmasta',
+      'info',
+      2000
+    );
+  },
+};
+
 // DOM Elements
 const searchInput = getDOMElement('searchInput') as HTMLInputElement;
 const refreshButton = getDOMElement('refreshButton') as HTMLButtonElement;
@@ -60,14 +179,21 @@ const filesList = getDOMElement('allFilesList') as HTMLDivElement;
 function updateStatus(message: string, type: StatusType = 'info'): void {
   console.log(`Status: ${message} (${type})`);
   
-  // Status display elements might not exist in simplified version
-  const statusElements = document.querySelectorAll('[id*="status"], .status');
-  statusElements.forEach(element => {
-    if (element instanceof HTMLElement) {
-      element.textContent = message;
-      element.className = `status ${type}`;
+  const loadingStatus = document.getElementById('loadingStatus');
+  const loadingText = loadingStatus?.querySelector('.loading-text');
+  
+  if (loadingStatus && loadingText) {
+    if (type === 'loading') {
+      loadingText.textContent = message;
+      loadingStatus.style.display = 'flex';
+      console.log('✅ Loading indicator SHOWN:', message);
+    } else {
+      loadingStatus.style.display = 'none';
+      console.log('✅ Loading indicator HIDDEN');
     }
-  });
+  } else {
+    console.log('❌ Loading status element not found');
+  }
 }
 
 /**
@@ -92,56 +218,48 @@ function hideSkeletonLoading(): void {
 /**
  * Load files and folders from service account backend
  */
-const loadDriveFiles = async (): Promise<void> => {
-  updateStatus('Loading Hawks training materials...', 'loading');
+const loadDriveFiles = async (refresh: boolean = false): Promise<void> => {
+  updateStatus('Yhdistetään Google Drive APIin...', 'loading');
   showSkeletonLoading();
 
   try {
+    const startTime = performance.now();
+    
+    // Show progress updates
+    updateStatus('Ladataan harjoitusmateriaaleja...', 'loading');
+    
+    // Add timeout to show that something is happening
+    const progressInterval = setInterval(() => {
+      const elapsed = Math.round((performance.now() - startTime) / 1000);
+      if (elapsed > 5) {
+        updateStatus(`Ladataan... ${elapsed}s (haetaan ${state.allFiles.length || 104} tiedostoa)`, 'loading');
+      }
+    }, 2000);
+    
     // Load both files and folders in one API call
-    const { files, folders } = await driveService.loadAllFilesAndFolders();
-
-    console.log(`Loaded ${files.length} files and ${folders.length} folders`);
+    const data = await driveService.loadAllFilesAndFolders(refresh);
+    
+    clearInterval(progressInterval);
+    
+    const loadTime = performance.now() - startTime;
+    console.log(`⚡ Loaded ${data.files.length} files, ${data.folders.length} folders in ${Math.round(loadTime)}ms ${data.cached ? '(cached)' : '(from Google Drive)'}`);
 
     // Update state
-    state.allFiles = files;
-    state.allFolders = folders;
-    state.filteredFiles = [...files];
+    state.allFiles = data.files;
+    state.allFolders = data.folders;
+    state.filteredFiles = [...data.files];
 
-    // Debug state update
-    console.log('🔄 State updated:', {
-      allFiles: state.allFiles.length,
-      allFolders: state.allFolders.length,
-      filteredFiles: state.filteredFiles.length
-    });
-
-    // Debug logging
-    console.log(`🏒 Loaded from Hawks backend:`, {
-      files: files.length,
-      folders: folders.length,
-      sampleFiles: files.slice(0, 3).map(f => f.name),
-      sampleFolders: folders.slice(0, 3).map(f => f.name)
-    });
-
-    // Debug file parent structure  
-    console.log('📄 Sample file parents:', files.slice(0, 5).map(f => ({ 
-      name: f.name, 
-      parents: f.parents 
-    })));
-    
-    // Debug folder structure
-    console.log('📁 Sample folder info:', folders.slice(0, 5).map(f => ({ 
-      name: f.name, 
-      id: f.id,
-      parents: f.parents
-    })));
-
-    // Cache folder structure with file counts
+    // Cache folder structure immediately for better UX
     cacheFolderStructure();
 
+    // Remove debug logging to improve performance
+
     hideSkeletonLoading();
+    updateStatus('', 'info'); // Hide loading status
     displayFiles();
     displayFolderChips();
     updateFileCount();
+    updateSessionDisplay();
 
     // Direct DOM update as fallback to ensure counts and chips are updated
     setTimeout(() => {
@@ -209,13 +327,29 @@ const loadDriveFiles = async (): Promise<void> => {
 };
 
 /**
+ * Calculate hierarchy level for a folder (0 = top level under Hawks root)
+ */
+function calculateFolderLevel(folderId: string, allFolders: DriveFolder[]): number {
+  const HAWKS_FOLDER_ID = '1ZF6AHx62MXfkgs7-xbrMxj4r9sdyKzUb';
+  
+  if (folderId === HAWKS_FOLDER_ID) return -1; // Root folder itself
+  
+  const folder = allFolders.find(f => f.id === folderId);
+  if (!folder || !folder.parents || folder.parents.length === 0) return 999; // Unknown/orphaned
+  
+  const parentId = folder.parents[0];
+  if (parentId === HAWKS_FOLDER_ID) return 0; // Direct child of Hawks root
+  
+  // Recursively calculate parent level + 1
+  return calculateFolderLevel(parentId, allFolders) + 1;
+}
+
+/**
  * Cache folder structure for quick lookups
  */
 function cacheFolderStructure(): void {
-  console.log('🗂️ Starting folder caching for ALL folders...');
+  console.log('🗂️ Caching folder structure:', state.allFolders.length, 'folders,', state.allFiles.length, 'files');
   state.folderCache.clear();
-  
-  console.log(`📊 Processing ${state.allFolders.length} folders and ${state.allFiles.length} files`);
   
   let foldersWithFiles = 0;
   state.allFolders.forEach((folder, index) => {
@@ -224,20 +358,20 @@ function cacheFolderStructure(): void {
       file.parents && file.parents.includes(folder.id)
     );
     
-    // Create extended folder object with file count
+    // Calculate hierarchy level
+    const hierarchyLevel = calculateFolderLevel(folder.id, state.allFolders);
+    
+    // Create extended folder object with file count and hierarchy level
     const extendedFolder = {
       ...folder,
-      fileCount: directFiles.length
+      fileCount: directFiles.length,
+      hierarchyLevel: hierarchyLevel
     };
     
     state.folderCache.set(folder.id, extendedFolder);
     
     if (directFiles.length > 0) {
       foldersWithFiles++;
-      console.log(`📁 [${index + 1}] ${folder.name}: ${directFiles.length} files`);
-      if (index < 10) { // Only show first 10 to avoid spam
-        console.log(`   📄 Sample files: ${directFiles.slice(0, 2).map(f => f.name).join(', ')}`);
-      }
     }
   });
 
@@ -278,18 +412,12 @@ function displayFiles(): void {
  * Display folder chips
  */
 function displayFolderChips(): void {
-  console.log('📁 displayFolderChips called, allFolders.length:', state.allFolders.length);
-  
   const folderChipsBar = document.getElementById('folderChipsBar');
   const folderChips = document.getElementById('folderChips');
   
-  if (!folderChipsBar || !folderChips) {
-    console.log('❌ folderChipsBar or folderChips element not found');
-    return;
-  }
+  if (!folderChipsBar || !folderChips) return;
 
   if (state.allFolders.length === 0) {
-    console.log('ℹ️ No folders to display, hiding chips bar');
     folderChipsBar.style.display = 'none';
     return;
   }
@@ -312,17 +440,45 @@ function displayFolderChips(): void {
   folderChips.appendChild(allFilesChip);
   
   // Create real folder chips from cached folders
-  console.log('🗂️ Creating real folder chips from cache');
-  console.log(`📊 Available cached folders: ${state.folderCache.size}`);
   
-  // Get folders with file counts > 0 and sort by file count (most files first)
-  const foldersWithFiles = Array.from(state.folderCache.values())
-    .filter(folder => folder.fileCount && folder.fileCount > 0)
-    .sort((a, b) => b.fileCount - a.fileCount) // Sort by file count descending
-    .slice(0, 8); // Show top 8 folders with most files
+  // Get folders with files and prioritize meaningful folder names for coaches
+  const allFoldersWithFiles = Array.from(state.folderCache.values())
+    .filter(folder => folder.fileCount && folder.fileCount > 0);
   
-  console.log(`🔍 Found ${foldersWithFiles.length} folders with files:`, 
-    foldersWithFiles.map(f => `${f.name}: ${f.fileCount}`));
+  // Prioritize folders with coaching-related terms (Finnish and English)
+  const priorityTerms = [
+    'harjoitus', 'practice', 'drill', 'exercise', 'treeni', 
+    'suunnittelu', 'planning', 'plan', 'opetus', 'teaching',
+    'taito', 'skill', 'tekniikka', 'technique', 'taktii', 'tactic'
+  ];
+  
+  const prioritizedFolders = allFoldersWithFiles.sort((a, b) => {
+    // 1. First priority: hierarchy level (top-level folders first)
+    const aLevel = (a as any).hierarchyLevel || 999;
+    const bLevel = (b as any).hierarchyLevel || 999;
+    if (aLevel !== bLevel) {
+      return aLevel - bLevel; // Lower level = higher priority
+    }
+    
+    // 2. Second priority: Check if folder name contains coaching terms
+    const aHasPriority = priorityTerms.some(term => 
+      a.name.toLowerCase().includes(term.toLowerCase())
+    );
+    const bHasPriority = priorityTerms.some(term => 
+      b.name.toLowerCase().includes(term.toLowerCase())
+    );
+    
+    // If one has priority and other doesn't, prioritize the one with priority terms
+    if (aHasPriority && !bHasPriority) return -1;
+    if (!aHasPriority && bHasPriority) return 1;
+    
+    // 3. Third priority: sort by file count (more files = higher priority)
+    return b.fileCount - a.fileCount;
+  });
+  
+  const foldersWithFiles = prioritizedFolders.slice(0, 8); // Show top 8 prioritized folders
+  
+  console.log(`🏒 Displaying ${foldersWithFiles.length} folder chips`);
   
   foldersWithFiles.forEach(folder => {
     const chip = document.createElement('button');
@@ -335,11 +491,7 @@ function displayFolderChips(): void {
     `;
     chip.onclick = () => filterByFolder(folder.id);
     folderChips.appendChild(chip);
-    
-    console.log(`✅ Created chip: ${folder.name} (${folder.fileCount} files)`);
   });
-  
-  console.log(`📋 Created ${foldersWithFiles.length} real folder chips`);
 }
 
 /**
@@ -379,6 +531,7 @@ function filterByFolder(folderId: string | null): void {
   displayFiles();
   displayFolderChips();
   updateFileCount();
+  updateSessionDisplay();
 }
 
 /**
@@ -386,11 +539,8 @@ function filterByFolder(folderId: string | null): void {
  */
 function handleSearch(): void {
   const query = searchInput.value.trim().toLowerCase();
-  console.log(`🔍 Search query: "${query}"`);
   
   if (!query) {
-    // If search is cleared, apply current folder filter
-    console.log('🔄 Search cleared, restoring folder filter');
     filterByFolder(state.currentFolderFilter);
     return;
   }
@@ -398,29 +548,20 @@ function handleSearch(): void {
   const baseFiles = state.currentFolderFilter 
     ? driveService.getFilesInFolder(state.currentFolderFilter, state.allFiles, state.allFolders)
     : state.allFiles;
-
-  console.log(`📊 Searching in ${baseFiles.length} files`);
   
   state.filteredFiles = searchService.filterFilesBySearch(baseFiles, query);
   state.currentPage = 1;
   
-  console.log(`📄 Found ${state.filteredFiles.length} matching files`);
-  
   updateStatus(`Hakutulokset: ${state.filteredFiles.length} tiedostoa löytyi`, 'info');
   displayFiles();
   updateFileCount();
+  updateSessionDisplay();
 }
 
 /**
  * Update file count display
  */
 function updateFileCount(): void {
-  console.log('🔢 Updating file count:', {
-    allFiles: state.allFiles.length,
-    allFolders: state.allFolders.length,
-    filteredFiles: state.filteredFiles.length
-  });
-
   const totalFilesSpan = document.getElementById('totalFiles');
   const totalFoldersSpan = document.getElementById('totalFolders');
   const currentViewSpan = document.getElementById('currentViewCount');
@@ -428,23 +569,14 @@ function updateFileCount(): void {
 
   if (totalFilesSpan) {
     totalFilesSpan.textContent = state.allFiles.length.toString();
-    console.log('✅ Updated totalFiles to:', state.allFiles.length);
-  } else {
-    console.log('❌ totalFiles element not found');
   }
   
   if (totalFoldersSpan) {
     totalFoldersSpan.textContent = state.allFolders.length.toString();
-    console.log('✅ Updated totalFolders to:', state.allFolders.length);
-  } else {
-    console.log('❌ totalFolders element not found');
   }
   
   if (currentViewSpan) {
     currentViewSpan.textContent = state.filteredFiles.length.toString();
-    console.log('✅ Updated currentViewCount to:', state.filteredFiles.length);
-  } else {
-    console.log('❌ currentViewCount element not found');
   }
   
   if (fileCountSpan) {
@@ -452,9 +584,6 @@ function updateFileCount(): void {
       ? '1 tiedosto löytyi' 
       : `${state.filteredFiles.length} tiedostoa löytyi`;
     fileCountSpan.textContent = message;
-    console.log('✅ Updated fileCount to:', message);
-  } else {
-    console.log('❌ fileCount element not found');
   }
 }
 
@@ -508,14 +637,87 @@ function updatePagination(): void {
 }
 
 /**
+ * Update planning mode UI
+ */
+const updatePlanningModeUI = (): void => {
+  const planningBar = document.getElementById('session-planning-bar');
+  if (!planningBar) return;
+
+  planningBar.style.display = sessionPlanningState.isActive ? 'flex' : 'none';
+
+  // Update planning mode toggle button if it exists
+  const toggleBtn = document.querySelector('.planning-toggle-btn');
+  if (toggleBtn) {
+    toggleBtn.textContent = sessionPlanningState.isActive
+      ? 'Lopeta suunnittelu'
+      : 'Aloita harjoitussuunnittelu';
+    toggleBtn.classList.toggle('active', sessionPlanningState.isActive);
+  }
+
+  // Add visual indicators to file items
+  document.querySelectorAll('.file-item').forEach(item => {
+    item.classList.toggle('planning-mode', sessionPlanningState.isActive);
+  });
+};
+
+/**
+ * Update session display
+ */
+const updateSessionDisplay = (): void => {
+  const sessionCount = document.getElementById('session-count');
+  const sessionList = document.getElementById('session-materials-list');
+
+  if (sessionCount) {
+    sessionCount.textContent =
+      sessionPlanningState.selectedFiles.size.toString();
+  }
+
+  if (sessionList) {
+    sessionList.innerHTML = '';
+
+    if (sessionPlanningState.selectedFiles.size === 0) {
+      sessionList.innerHTML =
+        '<div class="session-empty">Ei materiaaleja valittuna</div>';
+    } else {
+      Array.from(sessionPlanningState.selectedFiles).forEach(fileId => {
+        const file = state.allFiles.find(f => f.id === fileId);
+        if (file) {
+          const item = createElement('div', 'session-material-item');
+          item.innerHTML = `
+            <span class="material-name">${file.name}</span>
+            <button class="remove-material-btn" onclick="window.FileActions.removeFromSession('${fileId}')" title="Poista">×</button>
+          `;
+          sessionList.appendChild(item);
+        }
+      });
+    }
+  }
+
+  // Update add buttons in file list
+  document.querySelectorAll('.file-item').forEach(item => {
+    const addBtn = item.querySelector('.add-to-session-btn');
+    if (addBtn) {
+      const fileId = addBtn.getAttribute('data-file-id');
+      const isSelected =
+        fileId && sessionPlanningState.selectedFiles.has(fileId);
+      item.classList.toggle('in-session', !!isSelected);
+      if (addBtn) {
+        addBtn.textContent = isSelected ? '✓ Lisätty' : '+ Harjoitus';
+        addBtn.classList.toggle('added', !!isSelected);
+      }
+    }
+  });
+};
+
+/**
  * Initialize event listeners
  */
 function initializeEventListeners(): void {
   // Search functionality
   searchInput.addEventListener('input', handleSearch);
   
-  // Refresh button
-  refreshButton.addEventListener('click', loadDriveFiles);
+  // Refresh button - force refresh with bypass cache
+  refreshButton.addEventListener('click', () => loadDriveFiles(true));
 
   // Auto-refresh (optional)
   if (AUTO_REFRESH_INTERVAL > 0) {
