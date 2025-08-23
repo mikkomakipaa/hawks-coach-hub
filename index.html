@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="fi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Hawks Helsinki Valmennuskeskus - Käytä harjoitusmateriaaleja, harjoitusohjeita ja taktisia materiaaleja Google Drivestä"
+    />
+    <meta
+      name="keywords"
+      content="salibandy, valmennus, hawks helsinki, harjoitus, drillaus, taktiikka"
+    />
+    <meta name="author" content="Hawks Helsinki" />
+    <title>Hawks Helsinki - Valmennuskeskus</title>
+    
+    <link rel="icon" type="image/png" href="/assets/hawks-6482f9af.png" />
+    <script type="module" crossorigin src="/assets/main-9dbe3a4c.js"></script>
+    <link rel="stylesheet" href="/assets/index-be614b08.css">
+  </head>
+  <body>
+    <header>
+      <div class="header-content">
+        <div class="logo-section">
+          <img
+            src="/assets/hawks-6482f9af.png"
+            alt="Hawks Helsinki Logo"
+            class="hawks-logo"
+            onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"
+          />
+          <div class="floorball-icon" style="display: none"></div>
+          <div class="title-group">
+            <h1>Hawks Valmennuskeskus</h1>
+            <p class="subtitle">Harjoitusmateriaalit & Harjoitusohjeet</p>
+          </div>
+        </div>
+        <div class="auth-section" style="display: none">
+          <!-- Authentication not needed with service account -->
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <!-- Main Content Layout -->
+      <div class="main-container">
+        <div class="search-status-container">
+          <div class="search-section">
+            <div class="search-wrapper">
+              <label for="searchInput" class="sr-only"
+                >Etsi harjoitusmateriaaleja</label
+              >
+              <input
+                type="text"
+                id="searchInput"
+                placeholder="Etsi harjoituksia, taktiikkaa, harjoitusohjelmia..."
+                aria-label="Etsi harjoitusmateriaaleja"
+              />
+            </div>
+            <button
+              id="refreshButton"
+              class="refresh-btn"
+              aria-label="Päivitä tiedostolista"
+            >
+              Päivitä
+            </button>
+          </div>
+
+          <!-- Folder Quick Access - Integrated -->
+          <div
+            class="folder-chips-bar"
+            id="folderChipsBar"
+            style="display: none"
+          >
+            <div class="folder-chips" id="folderChips"></div>
+          </div>
+
+        </div>
+        <!-- Main Content Area -->
+        <div class="content-area">
+          <div class="content-header">
+            <h2 id="mainSectionTitle">Kaikki tiedostot</h2>
+            <div class="content-stats">
+              <span id="totalFiles">0</span> tiedostoa,
+              <span id="totalFolders">0</span> kansiota
+              <span class="separator">|</span>
+              <span id="currentViewCount">0</span> näytetään
+            </div>
+          </div>
+
+          <!-- Loading Status Display -->
+          <div id="loadingStatus" class="loading-status" style="display: none;">
+            <div class="loading-spinner"></div>
+            <span class="loading-text">Ladataan...</span>
+          </div>
+
+          <!-- Session Planning Bar -->
+          <div
+            id="session-planning-bar"
+            class="session-planning-bar"
+            style="display: none"
+          >
+            <div class="session-info">
+              <span class="session-title">🏒 Harjoitussuunnittelu</span>
+              <span class="session-count-text"
+                ><span id="session-count">0</span> materiaalia valittuna</span
+              >
+            </div>
+            <div class="session-actions">
+              <button
+                class="planning-toggle-btn"
+                onclick="window.FileActions.togglePlanningMode()"
+              >
+                Lopeta suunnittelu
+              </button>
+              <button
+                class="export-session-btn"
+                onclick="window.FileActions.exportSession()"
+              >
+                Vie suunnitelma
+              </button>
+            </div>
+            <div
+              id="session-materials-list"
+              class="session-materials-list"
+            ></div>
+          </div>
+
+          <div class="files-section">
+            <div class="file-list-simple" id="allFilesList"></div>
+            <div class="pagination-container">
+              <div class="pagination-info">
+                <span id="fileCount">0 tiedostoa löytyi</span>
+                <span class="pagination-details" id="paginationInfo"></span>
+              </div>
+              <div
+                class="pagination-controls"
+                id="paginationControls"
+                style="display: none"
+              >
+                <button id="prevPage" class="pagination-btn" disabled>
+                  ‹ Edellinen
+                </button>
+                <div class="pagination-pages" id="paginationPages"></div>
+                <button id="nextPage" class="pagination-btn">Seuraava ›</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Toast Notification Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <footer>
+      <div class="footer-content">
+        <div class="footer-section">
+          <span>Hawks Helsinki Valmennuskeskus</span>
+        </div>
+        <div class="footer-section">
+          <span
+            >© 2025 Mikko Mäkipää |
+            <a
+              href="https://github.com/mikkomakipaa/hawks-coach-hub"
+              target="_blank"
+              rel="noopener noreferrer"
+              >GitHub</a
+            ></span
+          >
+        </div>
+        <div class="footer-section">
+          <span>Toimii Google Drive API:lla</span>
+        </div>
+      </div>
+    </footer>
+
+    <!-- Service Account Version - No Google API scripts needed -->
+    
+  </body>
+</html>
