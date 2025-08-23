@@ -32,21 +32,8 @@
             <p class="subtitle">Harjoitusmateriaalit & Harjoitusohjeet</p>
           </div>
         </div>
-        <div class="auth-section">
-          <div id="authorize_div" style="display: none">
-            <button
-              id="authorize_button"
-              class="auth-btn"
-              aria-label="Kirjaudu Google Driveen"
-            >
-              Kirjaudu sisään
-            </button>
-          </div>
-          <div id="signout_div" style="display: none">
-            <button id="signout_button" class="auth-btn signout">
-              Kirjaudu ulos
-            </button>
-          </div>
+        <div class="auth-section" style="display: none">
+          <!-- Authentication not needed with service account -->
         </div>
       </div>
     </header>
@@ -85,9 +72,6 @@
             <div class="folder-chips" id="folderChips"></div>
           </div>
 
-          <div class="status-content">
-            <div id="statusText">Loading...</div>
-          </div>
         </div>
         <!-- Main Content Area -->
         <div class="content-area">
@@ -182,19 +166,7 @@
       </div>
     </footer>
 
-    <script src="/env-loader.js"></script>
-    <script
-      src="https://apis.google.com/js/api.js"
-      async
-      defer
-      onload="window.gapiLoaded = true"
-    ></script>
-    <script
-      src="https://accounts.google.com/gsi/client"
-      async
-      defer
-      onload="window.gisLoaded = true"
-    ></script>
-    <script type="module" src="/src/main.ts"></script>
+    <!-- Service Account Version - No Google API scripts needed -->
+    <script type="module" src="/src/main-service-account.ts"></script>
   </body>
 </html>

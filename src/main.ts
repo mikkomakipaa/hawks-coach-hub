@@ -283,8 +283,7 @@ let authorizeDiv: HTMLElement;
 let signoutDiv: HTMLElement;
 let authorizeButton: HTMLButtonElement;
 let signoutButton: HTMLButtonElement;
-let statusDiv: HTMLElement;
-let statusText: HTMLElement;
+// Status elements removed from UI
 let searchInput: HTMLInputElement;
 let refreshButton: HTMLButtonElement;
 let allFilesList: HTMLElement;
@@ -306,8 +305,7 @@ const initializeDOMElements = (): void => {
     signoutDiv = getDOMElement('signout_div');
     authorizeButton = getDOMElement('authorize_button');
     signoutButton = getDOMElement('signout_button');
-    statusDiv = getDOMElement('statusText')?.parentElement || document.body;
-    statusText = getDOMElement('statusText');
+    // Status elements removed from UI
     searchInput = getDOMElement('searchInput');
     refreshButton = getDOMElement('refreshButton');
     allFilesList = getDOMElement('allFilesList');
@@ -331,20 +329,10 @@ const initializeDOMElements = (): void => {
 };
 
 const updateStatus = (message: string, type: StatusType = 'info'): void => {
-  if (statusText) {
-    statusText.textContent = message;
-  }
+  // Status display removed from UI - function kept for compatibility
+  console.log(`Status: ${message} (${type})`);
 
-  if (statusDiv) {
-    statusDiv.classList.remove(
-      'loading',
-      'success',
-      'error',
-      'info',
-      'warning'
-    );
-    statusDiv.classList.add(type);
-  }
+  // Status div styling removed from UI - function kept for compatibility
 };
 
 const setupEventListeners = (): void => {
@@ -632,6 +620,18 @@ const loadDriveFiles = async (): Promise<void> => {
   showSkeletonLoading();
 
   try {
+    // Check Hawks folder access first
+    const hasFolderAccess = await driveApiService.checkFolderAccess();
+    if (!hasFolderAccess) {
+      updateStatus('No access to Hawks Helsinki shared folder', 'error');
+      showToast(
+        'Access Required',
+        'Unable to access the Hawks Helsinki training materials folder.',
+        'error'
+      );
+      return;
+    }
+
     // Load files and folders in parallel
     const [files, folders] = await Promise.all([
       driveApiService.loadAllFiles(),
@@ -643,6 +643,14 @@ const loadDriveFiles = async (): Promise<void> => {
     state.allFiles = files;
     state.allFolders = folders;
     state.filteredFiles = [...files];
+
+    // Debug logging for Hawks folder content
+    console.log(`🏒 Loaded from Hawks folder:`, {
+      files: files.length,
+      folders: folders.length,
+      sampleFiles: files.slice(0, 3).map(f => f.name),
+      sampleFolders: folders.slice(0, 3).map(f => f.name)
+    });
 
     // Cache folder structure with file counts
     cacheFolderStructure();
@@ -661,12 +669,12 @@ const loadDriveFiles = async (): Promise<void> => {
       );
     } else {
       updateStatus(
-        `Successfully loaded ${files.length} files and ${folders.length} folders`,
+        `Successfully loaded ${files.length} files and ${folders.length} folders from Hawks folder`,
         'success'
       );
       showToast(
-        'Content Loaded',
-        `Found ${files.length} files and ${folders.length} folders`,
+        'Hawks Training Materials Loaded',
+        `Found ${files.length} files and ${folders.length} folders from Hawks shared folder`,
         'success'
       );
     }

@@ -50,6 +50,15 @@ header {
   align-items: center;
 }
 
+/* Ensure header content aligns perfectly with main content */
+.header-content,
+.main-container,
+.footer-content {
+  max-width: 1200px;
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
+}
+
 .logo-section {
   display: flex;
   align-items: center;
@@ -84,7 +93,7 @@ header {
   background: var(--hawks-orange);
   color: white;
   border: none;
-  padding: 0.75rem 1.5rem;
+  padding: 1rem 1.5rem;
   border-radius: var(--border-radius);
   cursor: pointer;
   font-weight: 500;
@@ -313,14 +322,28 @@ main {
 }
 
 @media (max-width: 768px) {
+  .header-content,
+  .main-container,
+  .footer-content {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
   .main-container {
-    padding: 1rem 1rem 1.5rem;
+    padding-top: 1rem;
+    padding-bottom: 1.5rem;
   }
 }
 
 @media (max-width: 480px) {
+  .header-content,
+  .main-container,
+  .footer-content {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
   .main-container {
-    padding: 0.75rem 0.75rem 1rem;
+    padding-top: 0.75rem;
+    padding-bottom: 1rem;
   }
 }
 
@@ -357,15 +380,21 @@ main {
 
 /* Wide screen optimization - Remove max-width constraints */
 @media (min-width: 1200px) {
-  .main-container {
-    padding: 0 3rem;
+  .header-content,
+  .main-container,
+  .footer-content {
+    padding-left: 3rem;
+    padding-right: 3rem;
   }
 }
 
 /* Extra wide screen optimization */
 @media (min-width: 1600px) {
-  .main-container {
-    padding: 0 4rem;
+  .header-content,
+  .main-container,
+  .footer-content {
+    padding-left: 4rem;
+    padding-right: 4rem;
   }
 }
 
@@ -984,7 +1013,6 @@ footer {
 .footer-content {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 0 1.5rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -1154,7 +1182,6 @@ a:focus {
     flex-direction: column;
     gap: 1rem;
     text-align: center;
-    padding: 0 1rem;
   }
 
   .title-group h1 {

@@ -1,7 +1,9 @@
 import { defineConfig } from 'vite'
 import { resolve } from 'path'
+import { apiProxy } from './vite-api-proxy.js'
 
 export default defineConfig({
+  plugins: [apiProxy()],
   root: '.',
   build: {
     outDir: 'dist',

@@ -1,0 +1,12 @@
+{
+  "name": "hawks-drive-api",
+  "version": "1.0.0",
+  "description": "Google Drive API with Service Account for Hawks Training Materials",
+  "main": "drive.js",
+  "dependencies": {
+    "googleapis": "^128.0.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
