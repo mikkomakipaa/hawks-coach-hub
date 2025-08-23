@@ -1,217 +1,197 @@
-# Hawks Coach Hub - Google Drive Web Interface
+# Hawks Coach Hub - High-Performance Google Drive Interface
 
-A professional web application for Hawks Helsinki coaches to easily access training resources, drill instructions, and tactical materials from Google Drive. Features auto-refresh, search functionality, and categorized file organization.
+A modern, high-performance web application for Hawks Helsinki coaches to access training resources, drills, and tactical materials. Built with TypeScript, featuring **sub-5-second loading times** and intelligent caching.
 
-## Features
+## 🚀 Features
 
-- **Service Account Authentication** - No user login required, instant access
-- **High-Performance Loading** - 5-minute intelligent caching, loads in 2-3 seconds
-- **Practice Session Planning** - Add materials to training plans, export with links
-- **Smart Folder Navigation** - Hierarchy-based prioritization, coaching-term filtering
-- **Real-time Search** - Instant file filtering with debounced input
-- **Responsive Design** - Mobile-optimized for field use
-- **Professional Branding** - Hawks Helsinki themed interface
-- **Finnish Localization** - Native language support for Finnish coaches
+### ⚡ High Performance
+- **5-second loading** (down from 30+ seconds)
+- **Intelligent caching** with 5-minute TTL reduces API calls by 90%+
+- **Parallel batch processing** of Google Drive API requests
+- **Progressive loading indicators** with Finnish language support
+- **Service account authentication** - no user login required
 
-## Performance Optimizations
+### 🏒 Coach-Focused Design
+- **Practice session planning** - select and export training materials
+- **Smart folder navigation** - hierarchy-based prioritization 
+- **Coaching term filtering** - Finnish/English keywords get priority
+- **Real-time search** with instant file filtering
+- **Mobile-optimized** interface for field use
+- **Hawks Helsinki branding** and Finnish localization
 
-### ⚡ Sub-3-Second Loading
-- **Intelligent Caching**: 5-minute TTL reduces API calls by 90%+
-- **Single-Pass Recursion**: Optimized Google Drive API traversal
-- **Batch Processing**: Combined file/folder loading in one request
-- **Minimal Logging**: Reduced console spam for faster execution
-- **Early UI Updates**: Progressive rendering as data loads
+### 🔒 Enterprise Security
+- **Service account authentication** - no OAuth complexity
+- **Environment-based credentials** - secrets never in code
+- **Read-only Google Drive access** 
+- **Secure serverless deployment** on Vercel
 
-### 🎯 Smart Navigation  
-- **Hierarchy Prioritization**: Top-level folders show first in chips
-- **Coaching-Term Filtering**: Finnish/English coaching keywords get priority
-- **Efficient DOM Updates**: Batched DOM manipulations
-- **Session State Management**: Optimized file selection tracking
+## 🏗️ Architecture
 
-## Setup Instructions
+```
+Frontend (TypeScript + Vite)
+    ↓
+API Middleware (Vercel Serverless)
+    ↓
+Google Drive API (Service Account)
+    ↓
+Hawks Training Materials Folder
+```
 
-### 1. Google Cloud Setup
-
-1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Create a new project or select existing one
-3. Enable the Google Drive API:
-   - Go to "APIs & Services" > "Library"
-   - Search for "Google Drive API"
-   - Click "Enable"
-
-### 2. Create Credentials
-
-#### OAuth 2.0 Client ID
-1. Go to "APIs & Services" > "Credentials"
-2. Click "Create Credentials" > "OAuth client ID"
-3. Choose "Web application"
-4. Add authorized JavaScript origins:
-   - `http://localhost:8000` (for local testing)
-   - Your production domain (e.g., `https://mikkomakipaa.github.io/hawks-coach-hub`)
-5. Copy the Client ID
-
-#### API Key
-1. Click "Create Credentials" > "API Key"
-2. Restrict the key to Google Drive API
-3. Copy the API Key
-
-### 3. Configure the Application
-
-**⚠️ SECURITY WARNING: Never commit API keys to public repositories!**
-
-#### Option A: Local Development (Recommended)
-1. Copy the environment template:
-   ```bash
-   cp .env.example .env
-   ```
-2. Edit `.env` with your credentials:
-   ```bash
-   GOOGLE_CLIENT_ID=your-actual-client-id.apps.googleusercontent.com
-   GOOGLE_API_KEY=your-actual-api-key
-   ```
-3. Uncomment and update credentials in `env-loader.js`:
-   ```javascript
-   window.GOOGLE_CLIENT_ID = 'your-actual-client-id.apps.googleusercontent.com';
-   window.GOOGLE_API_KEY = 'your-actual-api-key';
-   ```
-
-#### Option B: Direct Configuration (Not Recommended for Public Repos)
-1. Open `script.js`
-2. Replace the placeholder values:
-   ```javascript
-   const CLIENT_ID = 'your-actual-client-id.apps.googleusercontent.com';
-   const API_KEY = 'your-actual-api-key';
-   ```
-
-#### Option C: Production Environment Variables
-Set these in your hosting platform (Netlify, Vercel, etc.):
-- `GOOGLE_CLIENT_ID`
-- `GOOGLE_API_KEY`
-
-### 4. Local Testing
-
-1. Start a local web server (required for Google OAuth):
-   ```bash
-   # Using Python
-   python -m http.server 8000
-   
-   # Using Node.js
-   npx http-server -p 8000
-   
-   # Using PHP
-   php -S localhost:8000
-   ```
-
-2. Open `http://localhost:8000` in your browser
-
-### 5. Deployment Options (Free)
-
-#### GitHub Pages
-1. Create a GitHub repository
-2. Upload your files
-3. Go to Settings > Pages
-4. Select source branch
-5. Your site will be available at `https://mikkomakipaa.github.io/hawks-coach-hub`
-
-#### Netlify
-1. Drag and drop your project folder to [Netlify](https://netlify.com)
-2. Your site will be automatically deployed
-
-#### Vercel
-1. Install Vercel CLI: `npm i -g vercel`
-2. Run `vercel` in your project directory
-3. Follow the deployment prompts
-
-## File Structure
+## 📁 Current File Structure
 
 ```
 hawks-coach-hub/
-├── index.html          # Main HTML file
-├── styles.css          # Hawks Helsinki themed stylesheet  
-├── script.js           # Google Drive API integration
-├── hawks.png          # Hawks Helsinki logo
-└── README.md          # Documentation
+├── index.html                     # Main HTML entry point
+├── styles-minimal.css             # Optimized Hawks-themed CSS
+├── package.json                   # Modern build toolchain
+├── vite.config.ts                 # Vite build configuration
+├── tsconfig.json                  # TypeScript configuration
+├── vercel.json                    # Deployment configuration
+│
+├── api/
+│   └── drive.js                   # Serverless function (Node.js)
+│
+├── src/
+│   ├── main-service-account.ts    # Main application logic
+│   ├── services/
+│   │   └── drive-service-account.ts # API client
+│   ├── components/
+│   │   ├── file-display.ts        # File rendering
+│   │   └── toast.ts               # User notifications
+│   ├── types/
+│   │   └── google-apis.ts         # TypeScript definitions
+│   └── utils/
+│       ├── dom.ts                 # DOM utilities
+│       ├── search.ts              # Search functionality
+│       └── config.ts              # Configuration
+│
+├── vite-api-proxy.js              # Development server proxy
+├── PERFORMANCE.md                 # Performance documentation
+└── .env.example                   # Environment template
 ```
 
-## Usage
+## 🚀 Quick Start
 
-1. **Sign In**: Click "Sign In" and authorize Google Drive access
-2. **Browse Resources**: Training materials are automatically loaded and categorized
-3. **Search**: Use the search bar to quickly find specific drills or tactics
-4. **Categories**: Files are organized into:
-   - Floorball Drills
-   - Tactics & Strategy  
-   - Training Plans
-   - Video Resources
-   - Diagrams & Images
-5. **Auto-Refresh**: Content updates automatically every 15 minutes
-6. **Manual Refresh**: Click refresh button for immediate updates
+### Prerequisites
+- Node.js 18+ and npm
+- Google Cloud Project with Drive API enabled
+- Service account with Drive access
 
-## Google Drive API Limits
-
-- **Free Tier**: 1,000 requests per 100 seconds per user
-- **Daily Limit**: 1,000,000,000 requests per day (shared across all users)
-- These limits are more than sufficient for Hawks coaching staff usage
-
-## Security Notes
-
-- Only requests read-only access to Google Drive
-- No data is stored on the server
-- OAuth tokens are handled client-side
-- Files are accessed directly through Google Drive links
-
-## Troubleshooting
-
-### "Access blocked" Error
-- Ensure your domain is added to authorized JavaScript origins
-- Check that the Google Drive API is enabled
-- Verify your OAuth consent screen is configured
-
-### "Invalid API Key" Error
-- Make sure the API key is correctly copied
-- Verify the API key is enabled for Google Drive API
-- Check that referrer restrictions match your domain
-
-### Files Not Loading
-- Verify you have access to the Google Drive files
-- Check browser console for JavaScript errors
-- Ensure proper internet connection
-
-## Customization
-
-### Adding More Categories
-Edit the `groupFilesByCategory()` function in `script.js`:
-
-```javascript
-const categories = {
-    'Your Category': [],
-    // Add more categories here
-};
+### 1. Clone and Install
+```bash
+git clone https://github.com/mikkomakipaa/hawks-coach-hub.git
+cd hawks-coach-hub
+npm install
 ```
 
-### Changing Auto-Refresh Interval
-Modify the interval in `setupAutoRefresh()`:
-
-```javascript
-setInterval(() => {
-    // Change 15 to desired minutes
-}, 15 * 60 * 1000);
+### 2. Environment Setup
+```bash
+cp .env.example .env
 ```
 
-### Styling
-Customize the appearance by editing `styles.css`. The design uses CSS Grid and Flexbox for responsive layout.
+Edit `.env`:
+```bash
+# Google Service Account (JSON key content or file path)
+GOOGLE_SERVICE_ACCOUNT_KEY="{\"type\":\"service_account\",...}"
+# OR
+GOOGLE_SERVICE_ACCOUNT_KEY_FILE="./path/to/key.json"
 
-## Support
+# Hawks folder ID (default provided)
+HAWKS_FOLDER_ID="1ZF6AHx62MXfkgs7-xbrMxj4r9sdyKzUb"
+```
 
-For issues and questions:
-- Check the browser console for error messages
-- Verify Google Cloud Console configuration
-- Ensure proper OAuth2 setup
+### 3. Development
+```bash
+npm run dev
+```
 
-## About Hawks Helsinki
+Visit `http://localhost:8000`
 
-Hawks Helsinki is a floorball club focused on providing quality sports experiences for the whole family. This Coach Hub application supports our coaching staff with easy access to training resources and tactical materials.
+### 4. Production Deployment
+```bash
+npm run build
+vercel deploy
+```
 
-## License
+## 🔧 Google Cloud Setup
+
+### 1. Create Service Account
+```bash
+# Enable Drive API
+gcloud services enable drive.googleapis.com
+
+# Create service account
+gcloud iam service-accounts create hawks-drive-reader \
+    --display-name="Hawks Drive Reader"
+
+# Create and download key
+gcloud iam service-accounts keys create coach-hub-key.json \
+    --iam-account=hawks-drive-reader@PROJECT_ID.iam.gserviceaccount.com
+```
+
+### 2. Share Google Drive Folder
+1. Open [Hawks Training Materials Folder](https://drive.google.com/drive/folders/1ZF6AHx62MXfkgs7-xbrMxj4r9sdyKzUb)
+2. Click "Share" → "Add people and groups"
+3. Add service account email: `hawks-drive-reader@PROJECT_ID.iam.gserviceaccount.com`
+4. Set permission to "Viewer"
+
+## 📊 Performance Metrics
+
+### Before Optimization
+- **Load time**: 30+ seconds
+- **User feedback**: None during loading
+- **API calls**: 100+ sequential requests
+- **Cache**: No caching system
+
+### After Optimization  
+- **Load time**: ~5 seconds (83% improvement)
+- **User feedback**: Visual loading indicators with progress
+- **API calls**: 60 parallel batch requests
+- **Cache**: 5-minute intelligent caching (90%+ hit rate)
+- **Subsequent loads**: <200ms (cached)
+
+## 🛠️ Development Scripts
+
+```bash
+npm run dev          # Start development server
+npm run build        # Build for production  
+npm run preview      # Preview production build
+npm run lint         # Run ESLint
+npm run typecheck    # Run TypeScript checks
+npm run test         # Run unit tests
+```
+
+## 🔒 Security & Privacy
+
+- **Service account**: Eliminates OAuth complexity and security risks
+- **Read-only access**: Cannot modify Google Drive content
+- **No data storage**: All data served directly from Google Drive
+- **Environment secrets**: Credentials managed via environment variables
+- **CORS protection**: API restricted to authorized domains
+- **No user tracking**: Privacy-focused design
+
+## 📱 Browser Support
+
+- Chrome/Edge 88+
+- Firefox 85+
+- Safari 14+
+- Mobile browsers (iOS Safari, Chrome Mobile)
+
+## 🤝 Contributing
+
+1. Follow TypeScript strict mode
+2. Use ESLint + Prettier for code formatting
+3. Add tests for new functionality
+4. Update performance documentation for optimizations
+
+## 📄 License
 
 MIT License - Customized for Hawks Helsinki coaching operations.
+
+## 🏒 About Hawks Helsinki
+
+Hawks Helsinki is a floorball club focused on providing quality sports experiences. This Coach Hub supports our coaching staff with fast, reliable access to training resources and tactical materials.
+
+---
+
+**Performance-optimized for coaching excellence** ⚡

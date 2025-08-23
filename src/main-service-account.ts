@@ -3,6 +3,8 @@
  * Modern TypeScript implementation with backend API calls
  */
 
+/* eslint-disable no-console */
+
 import type {
   DriveFile,
   DriveFolder,
@@ -14,10 +16,6 @@ import { initializeToastContainer, showToast } from '@/components/toast';
 import { ServiceAccountDriveService } from '@/services/drive-service-account';
 import { FileDisplayService } from '@/components/file-display';
 import { SearchService } from '@/utils/search';
-import {
-  FolderBrowserService,
-  type FolderTreeNode,
-} from '@/components/folder-browser';
 import { createElement } from '@/utils/dom';
 
 // Simplified Application State (no auth needed)
@@ -48,7 +46,6 @@ const state: AppState = {
 const driveService = new ServiceAccountDriveService();
 const fileDisplayService = new FileDisplayService();
 const searchService = new SearchService();
-const folderBrowserService = new FolderBrowserService();
 
 // Session Planning State
 const sessionPlanningState = {
@@ -58,17 +55,6 @@ const sessionPlanningState = {
 };
 
 // Global FileActions for action buttons
-declare global {
-  interface Window {
-    FileActions: {
-      addToSession: (fileId: string) => void;
-      downloadFile: (url: string) => void;
-      togglePlanningMode: () => void;
-      exportSession: () => void;
-      removeFromSession: (fileId: string) => void;
-    };
-  }
-}
 
 window.FileActions = {
   addToSession: (fileId: string) => {
@@ -309,7 +295,7 @@ const loadDriveFiles = async (refresh: boolean = false): Promise<void> => {
       );
       showToast(
         'Hawks Training Materials Loaded',
-        `Found ${files.length} files and ${folders.length} folders`,
+        `Found ${data.files.length} files and ${data.folders.length} folders`,
         'success'
       );
     }
@@ -352,7 +338,7 @@ function cacheFolderStructure(): void {
   state.folderCache.clear();
   
   let foldersWithFiles = 0;
-  state.allFolders.forEach((folder, index) => {
+  state.allFolders.forEach((folder) => {
     // Simple file counting: files that have this folder as parent  
     const directFiles = state.allFiles.filter(file => 
       file.parents && file.parents.includes(folder.id)

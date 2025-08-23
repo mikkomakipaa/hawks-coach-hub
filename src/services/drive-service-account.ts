@@ -3,6 +3,8 @@
  * Calls backend API instead of direct Google Drive API
  */
 
+/* eslint-disable no-console */
+
 import type { DriveFile, DriveFolder } from '@/types/google-apis';
 
 export class ServiceAccountDriveService {
