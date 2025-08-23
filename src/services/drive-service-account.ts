@@ -64,11 +64,12 @@ export class ServiceAccountDriveService {
     } catch (error) {
       console.error('❌ Service account API error:', error);
       
-      if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      if (errorMessage.includes('Failed to fetch') || errorMessage.includes('NetworkError')) {
         throw new Error('Unable to connect to service account API. The backend API is not running.');
       }
       
-      throw new Error(`Failed to load Drive content: ${error.message}`);
+      throw new Error(`Failed to load Drive content: ${errorMessage}`);
     }
   }
 

@@ -1,5 +1,6 @@
 /**
  * Vite plugin to proxy API requests during development
+ * @typedef {import('vite').Plugin} Plugin
  */
 
 import { createRequire } from 'module';

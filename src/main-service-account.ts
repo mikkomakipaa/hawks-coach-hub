@@ -55,6 +55,17 @@ const sessionPlanningState = {
 };
 
 // Global FileActions for action buttons
+declare global {
+  interface Window {
+    FileActions: {
+      addToSession: (_fileId: string) => void;
+      downloadFile: (_url: string) => void;
+      togglePlanningMode: () => void;
+      exportSession: () => void;
+      removeFromSession: (_fileId: string) => void;
+    };
+  }
+}
 
 window.FileActions = {
   addToSession: (fileId: string) => {
@@ -281,7 +292,7 @@ const loadDriveFiles = async (refresh: boolean = false): Promise<void> => {
       console.log(`🔧 Direct update completed: ${state.allFiles.length} files, ${state.allFolders.length} folders`);
     }, 1000);
 
-    if (files.length === 0 && folders.length === 0) {
+    if (data.files.length === 0 && data.folders.length === 0) {
       updateStatus('No training materials found', 'info');
       showToast(
         'No Content Found',
@@ -290,7 +301,7 @@ const loadDriveFiles = async (refresh: boolean = false): Promise<void> => {
       );
     } else {
       updateStatus(
-        `Successfully loaded ${files.length} files and ${folders.length} folders`,
+        `Successfully loaded ${data.files.length} files and ${data.folders.length} folders`,
         'success'
       );
       showToast(
@@ -303,7 +314,8 @@ const loadDriveFiles = async (refresh: boolean = false): Promise<void> => {
     console.error('Error loading files:', error);
     hideSkeletonLoading();
     
-    updateStatus(`Error loading files: ${error.message}`, 'error');
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    updateStatus(`Error loading files: ${errorMessage}`, 'error');
     showToast(
       'Loading Error',
       'Failed to load training materials. Please try refreshing the page.',
@@ -324,6 +336,7 @@ function calculateFolderLevel(folderId: string, allFolders: DriveFolder[]): numb
   if (!folder || !folder.parents || folder.parents.length === 0) return 999; // Unknown/orphaned
   
   const parentId = folder.parents[0];
+  if (!parentId) return 999; // No parent ID
   if (parentId === HAWKS_FOLDER_ID) return 0; // Direct child of Hawks root
   
   // Recursively calculate parent level + 1
@@ -459,7 +472,7 @@ function displayFolderChips(): void {
     if (!aHasPriority && bHasPriority) return 1;
     
     // 3. Third priority: sort by file count (more files = higher priority)
-    return b.fileCount - a.fileCount;
+    return (b.fileCount || 0) - (a.fileCount || 0);
   });
   
   const foldersWithFiles = prioritizedFolders.slice(0, 8); // Show top 8 prioritized folders
@@ -727,7 +740,11 @@ async function initializeApp(): Promise<void> {
   
   // Remove auth-related UI elements
   const authElements = document.querySelectorAll('#authorize_div, #signout_div');
-  authElements.forEach(el => el.style.display = 'none');
+  authElements.forEach(el => {
+    if (el instanceof HTMLElement) {
+      el.style.display = 'none';
+    }
+  });
   
   // Load files immediately (no auth required)
   await loadDriveFiles();
