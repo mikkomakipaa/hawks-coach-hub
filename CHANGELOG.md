@@ -5,6 +5,31 @@ All notable changes to the Hawks Coach Hub project will be documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.0.0 (2025-08-23)
+
+
+### Features
+
+* add comprehensive folder browser with nested navigation ([debd725](https://github.com/mikkomakipaa/hawks-coach-hub/commit/debd725460938eb4d648a1b8e0781829f2bd0da2))
+* backup current horizontal chips before breadcrumb upgrade ([73b4fc2](https://github.com/mikkomakipaa/hawks-coach-hub/commit/73b4fc27fc0835d49ca3461568d0a5f4842343b2))
+* enhance CI/CD resilience and security practices ([8fa1c26](https://github.com/mikkomakipaa/hawks-coach-hub/commit/8fa1c26775cf6e97220041ba5e22f74a1bfeb721))
+* implement service account approach for Google Drive access ([195ef27](https://github.com/mikkomakipaa/hawks-coach-hub/commit/195ef274841a331fc80117cf54f1b2926afbe849))
+* modernize codebase with TypeScript and comprehensive tooling ([32d1331](https://github.com/mikkomakipaa/hawks-coach-hub/commit/32d133112ad4ac91c738b291dfa45aaddfb17c39))
+* optimize Google Drive performance and add loading indicators ([c90131e](https://github.com/mikkomakipaa/hawks-coach-hub/commit/c90131e181a0d448c9bf963a4eb2918edfc22b79))
+
+
+### Bug Fixes
+
+* add explicit build configuration to vercel.json ([f992a10](https://github.com/mikkomakipaa/hawks-coach-hub/commit/f992a10a62103d69c96f60b228fcf30e5df4d883))
+* enhance .gitignore to prevent future credential leaks ([acf88b6](https://github.com/mikkomakipaa/hawks-coach-hub/commit/acf88b6f2f3c3b78e157da458a6396eb84d2a38d))
+* resolve all TypeScript compilation errors in CI ([278b94b](https://github.com/mikkomakipaa/hawks-coach-hub/commit/278b94b45fb6922eabe66a62d740e99e9bd94801))
+* resolve missing dom elements and build issues ([cbc447b](https://github.com/mikkomakipaa/hawks-coach-hub/commit/cbc447b5d1cd8260489385064b97c6baa70fa6f6))
+* resolve release-please permission issues and add setup guide ([290eb48](https://github.com/mikkomakipaa/hawks-coach-hub/commit/290eb4840427848c34d3f540caa5ec1f3770274d))
+* resolve vercel deployment mime type issue for env-loader.js ([da13758](https://github.com/mikkomakipaa/hawks-coach-hub/commit/da13758d6450a4ebba5aee9783551b07c2f533c0))
+* update deprecated codeql and artifact actions in security workflow ([b9073b3](https://github.com/mikkomakipaa/hawks-coach-hub/commit/b9073b3cd082e0ff7a9f7a9ebb88877cc1ed7f95))
+* update deprecated github actions to latest versions ([369aba6](https://github.com/mikkomakipaa/hawks-coach-hub/commit/369aba62f3d51c2d40f3de9278a8f0cb29b13734))
+* update github actions permissions for release workflow ([d67e5f8](https://github.com/mikkomakipaa/hawks-coach-hub/commit/d67e5f837f1c3f7bed133f8dc1e58fc7bb747d14))
+
 ## [Unreleased]
 
 ## [1.0.0] - 2025-08-23
