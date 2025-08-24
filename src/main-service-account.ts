@@ -58,10 +58,10 @@ const sessionPlanningState = {
 declare global {
   interface Window {
     FileActions: {
-      addToSession: (_fileId: string) => void;
+      addToSession: (fileId: string) => void;
       togglePlanningMode: () => void;
       exportSession: () => void;
-      removeFromSession: (_fileId: string) => void;
+      removeFromSession: (fileId: string) => void;
     };
   }
 }

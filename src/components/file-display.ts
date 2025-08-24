@@ -102,10 +102,7 @@ export class FileDisplayService {
   private createActionButtons(file: DriveFile): string {
     return `
       <div class="file-actions">
-        <button class="action-btn" onclick="window.open('${file.webViewLink}', '_blank')" title="Avaa Google Drivessa">
-          Avaa
-        </button>
-        <button class="action-btn secondary" onclick="FileActions.addToSession('${file.id}')" title="Lisää harjoitukseen">
+        <button class="action-btn session-add-btn" onclick="FileActions.addToSession('${file.id}')" title="Lisää harjoitukseen">
           + Harjoitus
         </button>
       </div>
