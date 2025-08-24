@@ -59,7 +59,6 @@ declare global {
   interface Window {
     FileActions: {
       addToSession: (_fileId: string) => void;
-      downloadFile: (_url: string) => void;
       togglePlanningMode: () => void;
       exportSession: () => void;
       removeFromSession: (_fileId: string) => void;
@@ -93,9 +92,6 @@ window.FileActions = {
     }
   },
 
-  downloadFile: (url: string) => {
-    window.open(url, '_blank');
-  },
 
   togglePlanningMode: () => {
     sessionPlanningState.isActive = !sessionPlanningState.isActive;

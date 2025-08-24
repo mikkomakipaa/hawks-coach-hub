@@ -108,9 +108,6 @@ export class FileDisplayService {
         <button class="action-btn secondary" onclick="FileActions.addToSession('${file.id}')" title="Lisää harjoitukseen">
           + Harjoitus
         </button>
-        <button class="action-btn secondary" onclick="FileActions.downloadFile('${file.webViewLink}')" title="Lataa">
-          ⬇
-        </button>
       </div>
     `;
   }
