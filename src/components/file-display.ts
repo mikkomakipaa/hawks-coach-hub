@@ -82,19 +82,7 @@ export class FileDisplayService {
     return recentFiles.includes(file.id);
   }
 
-  /**
-   * Get localized content type label
-   */
-  private getContentTypeLabel(contentType: string): string {
-    const labels: Record<string, string> = {
-      drill: 'Harjoitus',
-      tactic: 'Taktiikka',
-      plan: 'Suunnitelma',
-      video: 'Video',
-      general: 'Materiaali',
-    };
-    return labels[contentType] || 'Materiaali';
-  }
+  // Removed getContentTypeLabel method as category badges were removed from UI
 
   /**
    * Create action buttons for file
