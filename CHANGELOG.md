@@ -5,6 +5,22 @@ All notable changes to the Hawks Coach Hub project will be documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0](https://github.com/mikkomakipaa/hawks-coach-hub/compare/v1.0.0...v1.1.0) (2025-08-24)
+
+
+### Features
+
+* enhance scrollbar visibility and clean file display ui ([cfcba19](https://github.com/mikkomakipaa/hawks-coach-hub/commit/cfcba194c635a5bf4a5f2264238d85e044596a48))
+* optimize mobile UX and streamline file actions ([736d418](https://github.com/mikkomakipaa/hawks-coach-hub/commit/736d418e7ecc31e7a7ca08f56fec67a4cb36b9ae))
+* remove download button from file actions ([465de44](https://github.com/mikkomakipaa/hawks-coach-hub/commit/465de44a31a2ddb9933d3d1565445bb713aec431))
+
+
+### Bug Fixes
+
+* remove unused content type label method ([90d5836](https://github.com/mikkomakipaa/hawks-coach-hub/commit/90d5836e7932056c0416d303adf60a46a6c65a34))
+* resolve vercel deployment configuration conflict ([ad3315f](https://github.com/mikkomakipaa/hawks-coach-hub/commit/ad3315f79f3e858fb27e7a99e05981723ae747a3))
+* simplify vercel.json to use automatic function detection ([f3532ed](https://github.com/mikkomakipaa/hawks-coach-hub/commit/f3532ed8f4d885bfd4b99f4c50efb5985a08f924))
+
 ## 1.0.0 (2025-08-23)
 
 
