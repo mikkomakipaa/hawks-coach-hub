@@ -118,9 +118,6 @@ export class FileDisplayService {
     const contentType = this.detectContentType(file.name);
     const isRecent = this.isRecentlyAccessed(file);
     const icon = this.getFileIcon(file.mimeType);
-    const modifiedDate = new Date(file.modifiedTime).toLocaleDateString(
-      'fi-FI'
-    );
     const actionButtons = this.createActionButtons(file);
 
     // Add data attributes for styling
@@ -135,10 +132,7 @@ export class FileDisplayService {
         <a href="${file.webViewLink}" target="_blank" rel="noopener noreferrer" class="file-name">
           ${file.name}
         </a>
-        <div class="file-meta">
-          <span class="file-date">Muokattu: ${modifiedDate}</span>
-          <span class="content-type-badge">${this.getContentTypeLabel(contentType)}</span>
-        </div>
+        <!-- Simplified file meta - removed unnecessary date and category info -->
       </div>
       ${actionButtons}
     `;

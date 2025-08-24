@@ -224,37 +224,44 @@ main {
   width: 100%;
   overflow-x: auto;
   scrollbar-width: thin;
-  scrollbar-color: var(--neutral-medium) transparent;
+  scrollbar-color: var(--neutral-medium) rgba(0, 0, 0, 0.05);
   margin: 1rem 0;
+  padding-bottom: 0.25rem;
 }
 
+/* Desktop scrollbar - more visible and usable */
 .folder-chips-bar::-webkit-scrollbar {
-  height: 4px;
+  height: 8px;
 }
 
 .folder-chips-bar::-webkit-scrollbar-track {
-  background: transparent;
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 4px;
+  margin: 0 1rem;
 }
 
 .folder-chips-bar::-webkit-scrollbar-thumb {
   background: var(--neutral-medium);
-  border-radius: 2px;
+  border-radius: 4px;
+  transition: background 0.2s ease;
+  min-width: 20px; /* Ensure thumb is grabbable */
 }
 
-.folder-chips-bar::-webkit-scrollbar-thumb {
-  background: var(--neutral-medium);
-  border-radius: 2px;
+.folder-chips-bar::-webkit-scrollbar-thumb:hover {
+  background: var(--hawks-orange);
 }
+
+/* Desktop scrollbar styles moved to end of file to ensure proper precedence */
 
 .folder-chips {
   display: flex;
   gap: 0.5rem;
   flex-wrap: nowrap;
   justify-content: flex-start;
-  padding: 0.5rem 0;
+  padding: 0.5rem 0 0.75rem 0;
   width: 100%;
-  overflow-x: auto;
-  overflow-y: hidden;
+  /* Remove overflow from child - let parent handle scrolling */
+  overflow: visible;
 }
 
 .folder-chip {
@@ -625,6 +632,30 @@ main {
 .file-list-simple {
   max-height: 70vh;
   overflow-y: auto;
+  /* Subtle vertical scrollbar styling */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.3) rgba(0, 0, 0, 0.05);
+}
+
+/* Webkit vertical scrollbar styling */
+.file-list-simple::-webkit-scrollbar {
+  width: 8px;
+}
+
+.file-list-simple::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 4px;
+  margin: 1rem 0;
+}
+
+.file-list-simple::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+.file-list-simple::-webkit-scrollbar-thumb:hover {
+  background: var(--hawks-orange);
 }
 
 .file-item {
@@ -1243,9 +1274,19 @@ a:focus {
     margin-top: 1rem;
     padding-bottom: 0.5rem;
     position: relative;
+    /* Mobile-specific scrollbar styling */
+    scrollbar-width: none !important; /* Firefox: hide scrollbar */
+    -ms-overflow-style: none !important; /* IE/Edge: hide scrollbar */
   }
 
-  /* Add scroll indicators for better UX */
+  /* Hide scrollbar on mobile WebKit browsers */
+  .folder-chips-bar::-webkit-scrollbar {
+    display: none !important;
+    height: 0 !important;
+    width: 0 !important;
+  }
+
+  /* Add scroll indicators for better UX on mobile */
   .folder-chips-bar::after {
     content: '→';
     position: absolute;
@@ -1262,10 +1303,9 @@ a:focus {
 
   .folder-chips {
     gap: 0.4rem;
-    padding: 0.4rem 0;
+    padding: 0.4rem 0 0.75rem 0;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
-    scrollbar-width: thin;
     scroll-behavior: smooth;
     /* Add padding-right to prevent content hiding behind scroll indicator */
     padding-right: 2rem;
@@ -1305,6 +1345,16 @@ a:focus {
   .files-section {
     margin: 0;
     border-radius: var(--border-radius);
+  }
+
+  /* Hide vertical scrollbar on mobile for cleaner look */
+  .file-list-simple::-webkit-scrollbar {
+    display: none;
+  }
+
+  .file-list-simple {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
   }
 
   .file-item {
@@ -1436,7 +1486,8 @@ a:focus {
   }
 
   /* Ensure content never overflows */
-  body, html {
+  body,
+  html {
     overflow-x: hidden;
     max-width: 100vw;
   }
@@ -1448,5 +1499,69 @@ a:focus {
   .folder-chip {
     padding: 0.3rem 0.5rem;
     font-size: 0.7rem;
+  }
+}
+
+/* DESKTOP SCROLLBAR STYLES - Always visible on large screens */
+@media screen and (min-width: 769px) {
+  /* Horizontal scrollbar for folder chips - ALWAYS VISIBLE */
+  .search-status-container .folder-chips-bar {
+    overflow-x: scroll !important;
+    scrollbar-width: auto !important;
+    scrollbar-color: rgba(0, 0, 0, 0.4) rgba(0, 0, 0, 0.1) !important;
+    -ms-overflow-style: auto !important;
+  }
+
+  .search-status-container .folder-chips-bar::-webkit-scrollbar {
+    height: 10px !important;
+    display: block !important;
+    -webkit-appearance: none !important;
+  }
+
+  .search-status-container .folder-chips-bar::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.1) !important;
+    border-radius: 5px !important;
+    margin: 0 1rem !important;
+  }
+
+  .search-status-container .folder-chips-bar::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.3) !important;
+    border-radius: 5px !important;
+    min-width: 30px !important;
+    transition: background 0.2s ease !important;
+  }
+
+  .search-status-container .folder-chips-bar::-webkit-scrollbar-thumb:hover {
+    background: var(--hawks-orange) !important;
+  }
+
+  /* Vertical scrollbar for file list - ALWAYS VISIBLE */
+  .files-section .file-list-simple {
+    overflow-y: scroll !important;
+    scrollbar-width: auto !important;
+    scrollbar-color: rgba(0, 0, 0, 0.4) rgba(0, 0, 0, 0.1) !important;
+    -ms-overflow-style: auto !important;
+  }
+
+  .files-section .file-list-simple::-webkit-scrollbar {
+    width: 10px !important;
+    display: block !important;
+    -webkit-appearance: none !important;
+  }
+
+  .files-section .file-list-simple::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.1) !important;
+    border-radius: 5px !important;
+    margin: 1rem 0 !important;
+  }
+
+  .files-section .file-list-simple::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.3) !important;
+    border-radius: 5px !important;
+    transition: background 0.2s ease !important;
+  }
+
+  .files-section .file-list-simple::-webkit-scrollbar-thumb:hover {
+    background: var(--hawks-orange) !important;
   }
 }
