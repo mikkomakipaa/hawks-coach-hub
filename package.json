@@ -1,6 +1,6 @@
 {
   "name": "hawks-coach-hub",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Professional web application for Hawks Helsinki coaches to access training resources from Google Drive",
   "type": "module",
   "main": "dist/index.js",
