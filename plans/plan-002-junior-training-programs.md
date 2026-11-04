@@ -34,7 +34,7 @@
 
 ### Risks found
 
-1. **Almost none of the planner/editor work is committed.** It sits in the git index, mixed with `.claude/`, `.roo/` and `.claude-flow/` tooling files. Last real commits are from the Drive-browser era. This is the top risk.
+1. **Almost none of the planner/editor work is committed.** It sits in the git index, mixed with agent-tooling files. Last real commits are from the Drive-browser era. This is the top risk.
 2. `package.json` `dev` script hardcodes a local service-account path (must not be committed).
 3. Airtable is the interim database; the Airtable-to-Supabase decision is still open and affects the new program data model.
 4. Product copy, personas and journeys still describe a single senior team (Hawks Helsinki), not junior programs.
