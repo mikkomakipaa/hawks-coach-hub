@@ -114,8 +114,7 @@ scripts/
 ├── README.md                # This file
 ├── test.sh                  # Test suite runner
 ├── check-dev.sh             # Development checks
-├── ts-node-loader.mjs       # TypeScript loader
-└── verify-backfill.sql      # SQL verification script
+└── ts-node-loader.mjs       # TypeScript loader
 ```
 
 ---

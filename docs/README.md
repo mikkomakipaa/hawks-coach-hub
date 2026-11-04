@@ -9,11 +9,9 @@ Start here for shipped behavior and current implementation boundaries.
 - `docs/planner-api-implementation-boundaries.md` defines the planner/editor API seam and Airtable adapter boundary.
 - `docs/backend-drill-api.md`, `docs/backend-session-api.md`, and `docs/backend-import-api.md` describe the current backend route behavior.
 
-## Historical research
+## Archive
 
-Legacy Astro/Strapi/Supabase migration proposals and exploratory analysis were moved to `docs/archive/legacy-migration-research/`.
-
-Treat everything in that archive as historical research, not active implementation guidance.
+`docs/archive/` holds historical material, not active implementation guidance.
 
 ## Layout
 
