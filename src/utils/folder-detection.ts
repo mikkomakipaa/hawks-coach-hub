@@ -52,7 +52,9 @@ export function analyzeFolderStructure(folders: DriveFolder[]): {
     if (folders.length > 0) {
       suggestions.push(`// ${category.toUpperCase()} FOLDERS:`);
       folders.forEach(folder => {
-        suggestions.push(`// "${folder.folderName}" (${folder.folderId}) - Confidence: ${folder.confidence}%`);
+        suggestions.push(
+          `// "${folder.folderName}" (${folder.folderId}) - Confidence: ${folder.confidence}%`
+        );
       });
       suggestions.push('');
     }
@@ -82,7 +84,7 @@ function analyzeFolder(folder: DriveFolder): FolderDetectionResult | null {
     folderName: folder.name,
     detectedCategory,
     confidence,
-    suggestedMapping
+    suggestedMapping,
   };
 }
 
@@ -97,21 +99,25 @@ function calculateConfidence(folderName: string, category: string): number {
   switch (category) {
     case 'sport-training':
       if (name.includes('laji')) confidence += 30;
-      if (name.includes('harjoittelu') || name.includes('harjoitus')) confidence += 20;
+      if (name.includes('harjoittelu') || name.includes('harjoitus'))
+        confidence += 20;
       if (name.includes('drill') || name.includes('training')) confidence += 20;
-      if (name.includes('tekniikka') || name.includes('technique')) confidence += 15;
+      if (name.includes('tekniikka') || name.includes('technique'))
+        confidence += 15;
       break;
 
     case 'fitness':
       if (name.includes('fysiikka')) confidence += 30;
       if (name.includes('fitness') || name.includes('kunto')) confidence += 25;
       if (name.includes('voima') || name.includes('strength')) confidence += 20;
-      if (name.includes('kestävyys') || name.includes('endurance')) confidence += 20;
+      if (name.includes('kestävyys') || name.includes('endurance'))
+        confidence += 20;
       break;
 
     case 'game-situations':
       if (name.includes('taktiikka')) confidence += 30;
-      if (name.includes('tactics') || name.includes('strategy')) confidence += 25;
+      if (name.includes('tactics') || name.includes('strategy'))
+        confidence += 25;
       if (name.includes('pelitilanne')) confidence += 25;
       if (name.includes('rooli') || name.includes('role')) confidence += 20;
       break;
@@ -123,18 +129,21 @@ function calculateConfidence(folderName: string, category: string): number {
 /**
  * Get suggested mapping for a detected category
  */
-function getSuggestedMapping(category: string, confidence: number): { tabId: string; priority: number; } | null {
+function getSuggestedMapping(
+  category: string,
+  confidence: number
+): { tabId: string; priority: number } | null {
   if (confidence < 60) return null;
 
   const priorityMap: Record<string, number> = {
     'sport-training': 5,
-    'fitness': 4,
-    'game-situations': 3
+    fitness: 4,
+    'game-situations': 3,
   };
 
   return {
     tabId: category,
-    priority: priorityMap[category] || 2
+    priority: priorityMap[category] || 2,
   };
 }
 
@@ -149,7 +158,11 @@ function buildFolderHierarchy(folders: DriveFolder[]): FolderHierarchy[] {
     folderMap.set(folder.id, folder);
   });
 
-  function buildNode(folderId: string, level: number = 0, path: string[] = []): FolderHierarchy | null {
+  function buildNode(
+    folderId: string,
+    level: number = 0,
+    path: string[] = []
+  ): FolderHierarchy | null {
     const folder = folderMap.get(folderId);
     if (!folder) return null;
 
@@ -170,7 +183,7 @@ function buildFolderHierarchy(folders: DriveFolder[]): FolderHierarchy[] {
       folder,
       children,
       level,
-      path: currentPath
+      path: currentPath,
     };
   }
 
@@ -191,7 +204,9 @@ function buildFolderHierarchy(folders: DriveFolder[]): FolderHierarchy[] {
 /**
  * Group detection results by category
  */
-function groupByCategory(results: FolderDetectionResult[]): Record<string, FolderDetectionResult[]> {
+function groupByCategory(
+  results: FolderDetectionResult[]
+): Record<string, FolderDetectionResult[]> {
   const groups: Record<string, FolderDetectionResult[]> = {};
 
   results.forEach(result => {
@@ -214,7 +229,9 @@ function groupByCategory(results: FolderDetectionResult[]): Record<string, Folde
 /**
  * Generate configuration code for folder mappings
  */
-export function generateConfigurationCode(detectionResults: FolderDetectionResult[]): string {
+export function generateConfigurationCode(
+  detectionResults: FolderDetectionResult[]
+): string {
   const code = ['// Auto-generated folder mapping configuration', ''];
 
   const categoryGroups = groupByCategory(detectionResults);
@@ -231,10 +248,14 @@ export function generateConfigurationCode(detectionResults: FolderDetectionResul
       folders.forEach(folder => {
         if (folder.confidence >= 70) {
           code.push(`    {`);
-          code.push(`      folderId: '${folder.folderId}', // ${folder.folderName} (${folder.confidence}% confidence)`);
+          code.push(
+            `      folderId: '${folder.folderId}', // ${folder.folderName} (${folder.confidence}% confidence)`
+          );
           code.push(`      folderName: '${folder.folderName}',`);
           code.push(`      includeSubfolders: true,`);
-          code.push(`      priority: ${folder.suggestedMapping?.priority || 3}`);
+          code.push(
+            `      priority: ${folder.suggestedMapping?.priority || 3}`
+          );
           code.push(`    },`);
         }
       });
@@ -255,9 +276,9 @@ export function generateConfigurationCode(detectionResults: FolderDetectionResul
 function getTabDisplayName(category: string): string {
   const names: Record<string, string> = {
     'sport-training': 'Lajiharjoittelu',
-    'fitness': 'Fysiikkaharjoittelu',
+    fitness: 'Fysiikkaharjoittelu',
     'game-situations': 'Pelitilanneroolit',
-    'handbook': 'Valmentajan käsikirja'
+    handbook: 'Valmentajan käsikirja',
   };
   return names[category] || category;
 }
@@ -267,9 +288,31 @@ function getTabDisplayName(category: string): string {
  */
 function getCategoryKeywords(category: string): string[] {
   const keywords: Record<string, string[]> = {
-    'sport-training': ['lajiharjoittelu', 'harjoitus', 'drill', 'training', 'tekniikka', 'technique'],
-    'fitness': ['fysiikka', 'fitness', 'kunto', 'conditioning', 'voima', 'strength'],
-    'game-situations': ['taktiikka', 'tactics', 'strategy', 'pelitilanne', 'game', 'rooli', 'role']
+    'sport-training': [
+      'lajiharjoittelu',
+      'harjoitus',
+      'drill',
+      'training',
+      'tekniikka',
+      'technique',
+    ],
+    fitness: [
+      'fysiikka',
+      'fitness',
+      'kunto',
+      'conditioning',
+      'voima',
+      'strength',
+    ],
+    'game-situations': [
+      'taktiikka',
+      'tactics',
+      'strategy',
+      'pelitilanne',
+      'game',
+      'rooli',
+      'role',
+    ],
   };
   return keywords[category] || [];
 }
@@ -280,34 +323,36 @@ function getCategoryKeywords(category: string): string[] {
 export function printFolderAnalysis(folders: DriveFolder[]): void {
   const analysis = analyzeFolderStructure(folders);
 
-  console.log('📁 FOLDER STRUCTURE ANALYSIS');
-  console.log('============================');
+  console.debug('📁 FOLDER STRUCTURE ANALYSIS');
+  console.debug('============================');
 
   // Print hierarchy
-  console.log('\n🌳 FOLDER HIERARCHY:');
+  console.debug('\n🌳 FOLDER HIERARCHY:');
   analysis.hierarchy.forEach(node => {
     printHierarchyNode(node);
   });
 
   // Print detection results
-  console.log('\n🔍 CATEGORY DETECTION RESULTS:');
+  console.debug('\n🔍 CATEGORY DETECTION RESULTS:');
   const categoryGroups = groupByCategory(analysis.detectionResults);
   Object.entries(categoryGroups).forEach(([category, folders]) => {
-    console.log(`\n${category.toUpperCase()}:`);
+    console.debug(`\n${category.toUpperCase()}:`);
     folders.forEach(folder => {
-      console.log(`  ✓ ${folder.folderName} (${folder.confidence}%) - ${folder.folderId}`);
+      console.debug(
+        `  ✓ ${folder.folderName} (${folder.confidence}%) - ${folder.folderId}`
+      );
     });
   });
 
   // Print configuration suggestions
-  console.log('\n💡 CONFIGURATION SUGGESTIONS:');
+  console.debug('\n💡 CONFIGURATION SUGGESTIONS:');
   analysis.suggestions.forEach(suggestion => {
-    console.log(suggestion);
+    console.debug(suggestion);
   });
 
   // Print generated code
-  console.log('\n🔧 GENERATED CONFIGURATION CODE:');
-  console.log(generateConfigurationCode(analysis.detectionResults));
+  console.debug('\n🔧 GENERATED CONFIGURATION CODE:');
+  console.debug(generateConfigurationCode(analysis.detectionResults));
 }
 
 /**
@@ -317,9 +362,11 @@ function printHierarchyNode(node: FolderHierarchy, indent: string = ''): void {
   const category = autoDetectFolderCategory(node.folder.name);
   const categoryText = category ? ` [${category}]` : '';
 
-  console.log(`${indent}📁 ${node.folder.name}${categoryText} (${node.folder.id})`);
+  console.debug(
+    `${indent}📁 ${node.folder.name}${categoryText} (${node.folder.id})`
+  );
 
   node.children.forEach(child => {
-    printHierarchyNode(child, indent + '  ');
+    printHierarchyNode(child, `${indent}  `);
   });
 }

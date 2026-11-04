@@ -75,7 +75,7 @@ export class SearchService {
   /**
    * Debounce function for search input
    */
-  // eslint-disable-next-line no-unused-vars
+
   debounce<T extends (...args: any[]) => void>(func: T, wait: number): T {
     let timeout: NodeJS.Timeout;
     return ((...args: any[]) => {

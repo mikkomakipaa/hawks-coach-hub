@@ -21,8 +21,20 @@
   },
   "plugins": ["@typescript-eslint"],
   "rules": {
+    // TypeScript handles undefined names; the base rules misfire on types and signatures
+    "no-unused-vars": "off",
+    "no-undef": "off",
+    "@typescript-eslint/no-unused-vars": [
+      "error",
+      {
+        "argsIgnorePattern": "^_",
+        "varsIgnorePattern": "^_",
+        "caughtErrorsIgnorePattern": "^_"
+      }
+    ],
+
     // General rules
-    "no-console": "warn",
+    "no-console": ["warn", { "allow": ["warn", "error", "debug"] }],
     "no-debugger": "error",
     "no-alert": "error",
     "prefer-const": "error",
@@ -40,7 +52,7 @@
   },
   "overrides": [
     {
-      "files": ["**/*.test.ts", "**/*.spec.ts"],
+      "files": ["**/*.test.ts", "**/*.spec.ts", "src/test/**"],
       "rules": {
         "no-console": "off"
       }

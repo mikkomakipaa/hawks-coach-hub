@@ -42,10 +42,19 @@ export const FOLDER_MAPPINGS: Record<string, TabFolderConfig> = {
         folderId: 'root', // Search all folders for handbook
         folderName: 'All Content',
         includeSubfolders: true,
-        priority: 1
-      }
+        priority: 1,
+      },
     ],
-    keywords: ['valmentaja', 'käsikirja', 'guide', 'handbook', 'coaching', 'planning', 'opas', 'ohje']
+    keywords: [
+      'valmentaja',
+      'käsikirja',
+      'guide',
+      'handbook',
+      'coaching',
+      'planning',
+      'opas',
+      'ohje',
+    ],
   },
 
   'sport-training': {
@@ -58,10 +67,21 @@ export const FOLDER_MAPPINGS: Record<string, TabFolderConfig> = {
         folderId: 'FOLDER_01_LAJIHARJOITTELU', // Will be auto-detected
         folderName: '01 Lajiharjoittelu',
         includeSubfolders: true,
-        priority: 5
-      }
+        priority: 5,
+      },
     ],
-    keywords: ['lajiharjoittelu', 'harjoitus', 'drill', 'training', 'tekniikka', 'technique', 'taito', 'skill', 'laji', 'sport']
+    keywords: [
+      'lajiharjoittelu',
+      'harjoitus',
+      'drill',
+      'training',
+      'tekniikka',
+      'technique',
+      'taito',
+      'skill',
+      'laji',
+      'sport',
+    ],
   },
 
   fitness: {
@@ -73,10 +93,22 @@ export const FOLDER_MAPPINGS: Record<string, TabFolderConfig> = {
         folderId: 'FOLDER_02_FYSIIKKAHARJOITTELU', // Will be auto-detected
         folderName: '02 Fysiikkaharjoittelu',
         includeSubfolders: true,
-        priority: 5
-      }
+        priority: 5,
+      },
     ],
-    keywords: ['fysiikka', 'fysiikkaharjoittelu', 'fitness', 'kunto', 'conditioning', 'voima', 'strength', 'kestävyys', 'endurance', 'lihas', 'muscle']
+    keywords: [
+      'fysiikka',
+      'fysiikkaharjoittelu',
+      'fitness',
+      'kunto',
+      'conditioning',
+      'voima',
+      'strength',
+      'kestävyys',
+      'endurance',
+      'lihas',
+      'muscle',
+    ],
   },
 
   'game-situations': {
@@ -89,11 +121,23 @@ export const FOLDER_MAPPINGS: Record<string, TabFolderConfig> = {
         folderId: 'FOLDER_03_MUUT_MATERIAALIT', // Will be auto-detected
         folderName: '03 Muut materiaalit valmentajalle',
         includeSubfolders: true,
-        priority: 3
-      }
+        priority: 3,
+      },
     ],
-    keywords: ['taktiikka', 'tactics', 'strategy', 'pelitilanne', 'game', 'rooli', 'role', 'positio', 'position', 'muut', 'materiaalit']
-  }
+    keywords: [
+      'taktiikka',
+      'tactics',
+      'strategy',
+      'pelitilanne',
+      'game',
+      'rooli',
+      'role',
+      'positio',
+      'position',
+      'muut',
+      'materiaalit',
+    ],
+  },
 };
 
 /**
@@ -111,7 +155,7 @@ export const FOLDER_DETECTION_PATTERNS: Record<string, RegExp[]> = {
     /taito/i,
     /skills?/i,
     /laji/i,
-    /sport.*training/i
+    /sport.*training/i,
   ],
 
   fitness: [
@@ -124,7 +168,7 @@ export const FOLDER_DETECTION_PATTERNS: Record<string, RegExp[]> = {
     /voima/i,
     /strength/i,
     /kestävyys/i,
-    /endurance/i
+    /endurance/i,
   ],
 
   'game-situations': [
@@ -137,8 +181,8 @@ export const FOLDER_DETECTION_PATTERNS: Record<string, RegExp[]> = {
     /roolit/i,
     /roles?/i,
     /muut.*materiaalit/i,
-    /valmentajalle/i
-  ]
+    /valmentajalle/i,
+  ],
 };
 
 /**
@@ -152,7 +196,9 @@ export function getFolderMappingsForTab(tabId: string): TabFolderConfig | null {
  * Auto-detect folder categories based on folder names
  */
 export function autoDetectFolderCategory(folderName: string): string | null {
-  for (const [category, patterns] of Object.entries(FOLDER_DETECTION_PATTERNS)) {
+  for (const [category, patterns] of Object.entries(
+    FOLDER_DETECTION_PATTERNS
+  )) {
     if (patterns.some(pattern => pattern.test(folderName))) {
       return category;
     }
@@ -163,21 +209,31 @@ export function autoDetectFolderCategory(folderName: string): string | null {
 /**
  * Update folder mappings with actual folder IDs from the loaded data
  */
-export function updateFolderMappingsWithRealIds(folders: Array<{ id: string; name: string }>): void {
+export function updateFolderMappingsWithRealIds(
+  folders: Array<{ id: string; name: string }>
+): void {
   // Auto-detect folders and update mappings
   folders.forEach(folder => {
     const detectedCategory = autoDetectFolderCategory(folder.name);
     if (detectedCategory && FOLDER_MAPPINGS[detectedCategory]) {
       // Find if we already have a mapping for this type
       const existingMapping = FOLDER_MAPPINGS[detectedCategory].folders.find(
-        mapping => mapping.folderName.toLowerCase().includes(folder.name.toLowerCase().substring(0, 5))
+        mapping =>
+          mapping.folderName
+            .toLowerCase()
+            .includes(folder.name.toLowerCase().substring(0, 5))
       );
 
-      if (existingMapping && existingMapping.folderId.startsWith('FOLDER_ID_')) {
+      if (
+        existingMapping &&
+        existingMapping.folderId.startsWith('FOLDER_ID_')
+      ) {
         // Update with real ID
         existingMapping.folderId = folder.id;
         existingMapping.folderName = folder.name;
-        console.log(`📁 Auto-mapped folder "${folder.name}" (${folder.id}) to category "${detectedCategory}"`);
+        console.debug(
+          `📁 Auto-mapped folder "${folder.name}" (${folder.id}) to category "${detectedCategory}"`
+        );
       }
     }
   });
@@ -186,7 +242,10 @@ export function updateFolderMappingsWithRealIds(folders: Array<{ id: string; nam
 /**
  * Get all relevant folder IDs for a tab (including subfolders)
  */
-export function getRelevantFolderIds(tabId: string, allFolders: Array<{ id: string; name: string; parents?: string[] }>): string[] {
+export function getRelevantFolderIds(
+  tabId: string,
+  allFolders: Array<{ id: string; name: string; parents?: string[] }>
+): string[] {
   const config = getFolderMappingsForTab(tabId);
   if (!config) return [];
 
@@ -215,11 +274,14 @@ export function getRelevantFolderIds(tabId: string, allFolders: Array<{ id: stri
 /**
  * Get all subfolder IDs recursively
  */
-function getSubfolderIds(parentId: string, allFolders: Array<{ id: string; parents?: string[] }>): string[] {
+function getSubfolderIds(
+  parentId: string,
+  allFolders: Array<{ id: string; parents?: string[] }>
+): string[] {
   const subfolderIds: string[] = [];
 
-  const directSubfolders = allFolders.filter(folder =>
-    folder.parents && folder.parents.includes(parentId)
+  const directSubfolders = allFolders.filter(
+    folder => folder.parents && folder.parents.includes(parentId)
   );
 
   directSubfolders.forEach(subfolder => {

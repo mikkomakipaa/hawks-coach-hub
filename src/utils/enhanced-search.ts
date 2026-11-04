@@ -44,22 +44,50 @@ export class EnhancedSearchService {
   private miniSearch: MiniSearch<DriveFile>;
   private isInitialized = false;
   private finnishTerms = new Set([
-    'harjoitus', 'harjoittelu', 'treeni', 'valmennus', 'ohje', 'opas',
-    'taito', 'tekniikka', 'taktiikka', 'strategia', 'fysiikka', 'lihavoima',
-    'nopeus', 'reaktio', 'syöttö', 'laukaus', 'puolustus', 'hyökkäys',
-    'pelaaja', 'joukkue', 'ottelu', 'kilpailu', 'salibandy', 'mailapelit'
+    'harjoitus',
+    'harjoittelu',
+    'treeni',
+    'valmennus',
+    'ohje',
+    'opas',
+    'taito',
+    'tekniikka',
+    'taktiikka',
+    'strategia',
+    'fysiikka',
+    'lihavoima',
+    'nopeus',
+    'reaktio',
+    'syöttö',
+    'laukaus',
+    'puolustus',
+    'hyökkäys',
+    'pelaaja',
+    'joukkue',
+    'ottelu',
+    'kilpailu',
+    'salibandy',
+    'mailapelit',
   ]);
 
   constructor() {
     this.miniSearch = new MiniSearch({
       fields: ['name', 'description', 'category', 'tags'],
-      storeFields: ['id', 'name', 'mimeType', 'size', 'webViewLink', 'parents', 'modifiedTime'],
+      storeFields: [
+        'id',
+        'name',
+        'mimeType',
+        'size',
+        'webViewLink',
+        'parents',
+        'modifiedTime',
+      ],
       searchOptions: {
         boost: { name: 2, tags: 1.5, category: 1.2 },
         fuzzy: 0.2, // 20% tolerance for typos
         prefix: true,
-        combineWith: 'OR'
-      }
+        combineWith: 'OR',
+      },
     });
   }
 
@@ -75,7 +103,7 @@ export class EnhancedSearchService {
       ...file,
       category: this.categorizeFile(file),
       tags: this.generateTags(file),
-      description: this.generateDescription(file)
+      description: this.generateDescription(file),
     }));
 
     // Add to search index
@@ -93,13 +121,15 @@ export class EnhancedSearchService {
       size: 0,
       category: content.category,
       tags: content.tags.join(' '),
-      description: `${content.description.fi} | ${content.description.en}`
+      description: `${content.description.fi} | ${content.description.en}`,
     }));
 
     this.miniSearch.addAll(staticForIndex);
     this.isInitialized = true;
 
-    console.log(`🔍 Enhanced search initialized with ${files.length} files and ${staticContent.length} static content items`);
+    console.debug(
+      `🔍 Enhanced search initialized with ${files.length} files and ${staticContent.length} static content items`
+    );
   }
 
   /**
@@ -114,7 +144,10 @@ export class EnhancedSearchService {
     const searchOptions = this.getSearchOptions(options);
 
     try {
-      const results = this.miniSearch.search(searchQuery, searchOptions.searchOptions);
+      const results = this.miniSearch.search(
+        searchQuery,
+        searchOptions.searchOptions
+      );
 
       // Map MiniSearch results to SearchResult format
       const searchResults: SearchResult[] = results.map(result => {
@@ -131,16 +164,15 @@ export class EnhancedSearchService {
           score: result.score || 0,
           match: {
             field: this.getMatchField(result),
-            highlight: this.highlightMatch(result, query)
+            highlight: this.highlightMatch(result, query),
           },
           category: originalFile.category,
           tags: originalFile.tags,
-          description: originalFile.description
+          description: originalFile.description,
         };
       });
 
       return searchResults;
-
     } catch (error) {
       console.error('Search error:', error);
       return [];
@@ -155,12 +187,10 @@ export class EnhancedSearchService {
 
     const suggestions = this.miniSearch.autoSuggest(query, {
       fuzzy: 0.2,
-      prefix: true
+      prefix: true,
     });
 
-    return suggestions
-      .slice(0, limit)
-      .map(suggestion => suggestion.suggestion);
+    return suggestions.slice(0, limit).map(suggestion => suggestion.suggestion);
   }
 
   /**
@@ -176,7 +206,10 @@ export class EnhancedSearchService {
   /**
    * Hybrid search across both Google Drive and static content
    */
-  async hybridSearch(query: string, language: 'fi' | 'en' = 'fi'): Promise<HybridSearchResult[]> {
+  async hybridSearch(
+    query: string,
+    language: 'fi' | 'en' = 'fi'
+  ): Promise<HybridSearchResult[]> {
     const results: HybridSearchResult[] = [];
 
     // Search Google Drive files
@@ -186,14 +219,14 @@ export class EnhancedSearchService {
         type: 'drive',
         driveFile: result,
         score: result.score,
-        source: 'Google Drive'
+        source: 'Google Drive',
       });
     }
 
     // Search static content
     const staticResults = await contentManager.searchContent({
       query,
-      language
+      language,
     });
 
     for (const result of staticResults) {
@@ -201,7 +234,7 @@ export class EnhancedSearchService {
         type: 'static',
         staticContent: result,
         score: result.score + 10, // Boost static content slightly
-        source: 'Static Content'
+        source: 'Static Content',
       });
     }
 
@@ -212,13 +245,16 @@ export class EnhancedSearchService {
   /**
    * Get content suggestions based on category
    */
-  async getContentSuggestions(category: string, language: 'fi' | 'en' = 'fi'): Promise<HybridSearchResult[]> {
+  async getContentSuggestions(
+    category: string,
+    language: 'fi' | 'en' = 'fi'
+  ): Promise<HybridSearchResult[]> {
     const results: HybridSearchResult[] = [];
 
     // Get static content by category
     const staticResults = await contentManager.searchContent({
       category: [category as any],
-      language
+      language,
     });
 
     for (const result of staticResults) {
@@ -226,18 +262,19 @@ export class EnhancedSearchService {
         type: 'static',
         staticContent: result,
         score: result.score,
-        source: 'Static Content'
+        source: 'Static Content',
       });
     }
 
     // Search drive files for category keywords
     const driveResults = this.search(category);
-    for (const result of driveResults.slice(0, 5)) { // Limit drive results
+    for (const result of driveResults.slice(0, 5)) {
+      // Limit drive results
       results.push({
         type: 'drive',
         driveFile: result,
         score: result.score * 0.8, // Lower priority than static
-        source: 'Google Drive'
+        source: 'Google Drive',
       });
     }
 
@@ -247,11 +284,14 @@ export class EnhancedSearchService {
   /**
    * Search static content only
    */
-  async searchStaticContent(query: string, language: 'fi' | 'en' = 'fi'): Promise<ContentSearchResult[]> {
+  async searchStaticContent(
+    query: string,
+    language: 'fi' | 'en' = 'fi'
+  ): Promise<ContentSearchResult[]> {
     try {
       const results = await contentManager.searchContent({
         query,
-        language
+        language,
       });
       return results;
     } catch (error) {
@@ -265,9 +305,15 @@ export class EnhancedSearchService {
    */
   getPopularTerms(): string[] {
     return [
-      'harjoitus drill', 'taktiikka tactics', 'fysiikka physical',
-      'syöttö passing', 'laukaus shooting', 'puolustus defense',
-      'hyökkäys offense', 'nopeus speed', 'reaktio reaction'
+      'harjoitus drill',
+      'taktiikka tactics',
+      'fysiikka physical',
+      'syöttö passing',
+      'laukaus shooting',
+      'puolustus defense',
+      'hyökkäys offense',
+      'nopeus speed',
+      'reaktio reaction',
     ];
   }
 
@@ -279,15 +325,15 @@ export class EnhancedSearchService {
 
     // Handle Finnish-English term mapping
     const termMappings: Record<string, string> = {
-      'harjoitus': 'drill training exercise',
-      'taktiikka': 'tactics strategy',
-      'fysiikka': 'physical fitness',
-      'syöttö': 'passing pass',
-      'laukaus': 'shooting shot',
-      'puolustus': 'defense defensive',
-      'hyökkäys': 'offense attack offensive',
-      'nopeus': 'speed agility',
-      'reaktio': 'reaction quick'
+      harjoitus: 'drill training exercise',
+      taktiikka: 'tactics strategy',
+      fysiikka: 'physical fitness',
+      syöttö: 'passing pass',
+      laukaus: 'shooting shot',
+      puolustus: 'defense defensive',
+      hyökkäys: 'offense attack offensive',
+      nopeus: 'speed agility',
+      reaktio: 'reaction quick',
     };
 
     // Expand Finnish terms to include English equivalents
@@ -350,7 +396,8 @@ export class EnhancedSearchService {
     // Skill-based tags
     if (name.match(/passing|syöttö|pass/)) tags.push('passing', 'syöttö');
     if (name.match(/shooting|laukaus|shot/)) tags.push('shooting', 'laukaus');
-    if (name.match(/defense|puolustus|defensive/)) tags.push('defense', 'puolustus');
+    if (name.match(/defense|puolustus|defensive/))
+      tags.push('defense', 'puolustus');
     if (name.match(/offense|hyökkäys|attack/)) tags.push('offense', 'hyökkäys');
     if (name.match(/speed|nopeus|agility/)) tags.push('speed', 'nopeus');
     if (name.match(/reaction|reaktio|quick/)) tags.push('reaction', 'reaktio');
@@ -387,14 +434,22 @@ export class EnhancedSearchService {
       fuzzy: true,
       boost: { name: 2, tags: 1.5, category: 1.2 },
       fields: ['name', 'description', 'category', 'tags'],
-      storeFields: ['id', 'name', 'mimeType', 'size', 'webViewLink', 'parents', 'modifiedTime'],
+      storeFields: [
+        'id',
+        'name',
+        'mimeType',
+        'size',
+        'webViewLink',
+        'parents',
+        'modifiedTime',
+      ],
       searchOptions: {
         boost: { name: 2, tags: 1.5, category: 1.2 },
         fuzzy: 0.2,
         prefix: true,
-        combineWith: 'OR'
+        combineWith: 'OR',
       },
-      ...options
+      ...options,
     };
   }
 
@@ -435,7 +490,7 @@ export class EnhancedSearchService {
     return {
       totalDocuments: this.miniSearch.documentCount,
       isInitialized: this.isInitialized,
-      finnishTermsSupported: this.finnishTerms.size
+      finnishTermsSupported: this.finnishTerms.size,
     };
   }
 }

@@ -10,7 +10,7 @@ import type {
   ContentSearchResult,
   ContentManager as IContentManager,
   ContentType,
-  ContentCategory
+  ContentCategory,
 } from '@/types/content-types';
 
 export class ContentManager implements IContentManager {
@@ -36,7 +36,9 @@ export class ContentManager implements IContentManager {
   /**
    * Create new content
    */
-  async createContent(content: Omit<StaticContent, 'id' | 'createdAt' | 'updatedAt'>): Promise<StaticContent> {
+  async createContent(
+    content: Omit<StaticContent, 'id' | 'createdAt' | 'updatedAt'>
+  ): Promise<StaticContent> {
     const id = this.generateId();
     const now = new Date().toISOString();
 
@@ -50,8 +52,8 @@ export class ContentManager implements IContentManager {
         likes: 0,
         isFavorite: false,
         relatedContent: [],
-        seasons: content.metadata?.seasons || ['all']
-      }
+        seasons: content.metadata?.seasons || ['all'],
+      },
     };
 
     this.content.set(id, newContent);
@@ -62,7 +64,10 @@ export class ContentManager implements IContentManager {
   /**
    * Get content by ID
    */
-  async getContent(id: string, _language: 'fi' | 'en' = 'fi'): Promise<StaticContent | null> {
+  async getContent(
+    id: string,
+    _language: 'fi' | 'en' = 'fi'
+  ): Promise<StaticContent | null> {
     await this.initializeContent();
     const content = this.content.get(id);
     return content || null;
@@ -71,7 +76,10 @@ export class ContentManager implements IContentManager {
   /**
    * Update existing content
    */
-  async updateContent(id: string, updates: Partial<StaticContent>): Promise<StaticContent> {
+  async updateContent(
+    id: string,
+    updates: Partial<StaticContent>
+  ): Promise<StaticContent> {
     await this.initializeContent();
     const existing = this.content.get(id);
     if (!existing) {
@@ -81,7 +89,7 @@ export class ContentManager implements IContentManager {
     const updated: StaticContent = {
       ...existing,
       ...updates,
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
     };
 
     this.content.set(id, updated);
@@ -104,7 +112,9 @@ export class ContentManager implements IContentManager {
   /**
    * Search content with advanced filtering
    */
-  async searchContent(options: ContentSearchOptions): Promise<ContentSearchResult[]> {
+  async searchContent(
+    options: ContentSearchOptions
+  ): Promise<ContentSearchResult[]> {
     await this.initializeContent();
 
     let results = Array.from(this.content.values());
@@ -116,30 +126,38 @@ export class ContentManager implements IContentManager {
     }
 
     if (options.category && options.category.length > 0) {
-      results = results.filter(content => options.category!.includes(content.category));
+      results = results.filter(content =>
+        options.category!.includes(content.category)
+      );
     }
 
     if (options.difficulty && options.difficulty.length > 0) {
-      results = results.filter(content => options.difficulty!.includes(content.difficulty));
+      results = results.filter(content =>
+        options.difficulty!.includes(content.difficulty)
+      );
     }
 
     if (options.ageGroup && options.ageGroup.length > 0) {
       results = results.filter(content =>
-        content.ageGroup.some(age => options.ageGroup!.includes(age) || age === 'all')
+        content.ageGroup.some(
+          age => options.ageGroup!.includes(age) || age === 'all'
+        )
       );
     }
 
     if (options.duration) {
-      results = results.filter(content =>
-        content.duration >= options.duration!.min &&
-        content.duration <= options.duration!.max
+      results = results.filter(
+        content =>
+          content.duration >= options.duration!.min &&
+          content.duration <= options.duration!.max
       );
     }
 
     if (options.equipment && options.equipment.length > 0) {
-      results = results.filter(content =>
-        content.equipment.some(eq => options.equipment!.includes(eq)) ||
-        content.equipment.includes('none')
+      results = results.filter(
+        content =>
+          content.equipment.some(eq => options.equipment!.includes(eq)) ||
+          content.equipment.includes('none')
       );
     }
 
@@ -158,40 +176,52 @@ export class ContentManager implements IContentManager {
         const contentText = content.content[language].toLowerCase();
         const tags = content.tags.join(' ').toLowerCase();
 
-        return title.includes(query) ||
-               description.includes(query) ||
-               contentText.includes(query) ||
-               tags.includes(query);
+        return (
+          title.includes(query) ||
+          description.includes(query) ||
+          contentText.includes(query) ||
+          tags.includes(query)
+        );
       });
     }
 
     // Convert to search results with scoring
-    return results.map(content => ({
-      ...content,
-      score: this.calculateRelevanceScore(content, options),
-      matchedFields: this.getMatchedFields(content, options),
-      highlights: this.generateHighlights(content, options)
-    })).sort((a, b) => b.score - a.score);
+    return results
+      .map(content => ({
+        ...content,
+        score: this.calculateRelevanceScore(content, options),
+        matchedFields: this.getMatchedFields(content, options),
+        highlights: this.generateHighlights(content, options),
+      }))
+      .sort((a, b) => b.score - a.score);
   }
 
   /**
    * Get content by category
    */
-  async getContentByCategory(category: ContentCategory, language: 'fi' | 'en' = 'fi'): Promise<StaticContent[]> {
+  async getContentByCategory(
+    category: ContentCategory,
+    language: 'fi' | 'en' = 'fi'
+  ): Promise<StaticContent[]> {
     return this.searchContent({ category: [category], language });
   }
 
   /**
    * Get content by type
    */
-  async getContentByType(type: ContentType, language: 'fi' | 'en' = 'fi'): Promise<StaticContent[]> {
+  async getContentByType(
+    type: ContentType,
+    language: 'fi' | 'en' = 'fi'
+  ): Promise<StaticContent[]> {
     return this.searchContent({ type: [type], language });
   }
 
   /**
    * Create content collection
    */
-  async createCollection(collection: Omit<ContentCollection, 'id' | 'createdAt' | 'updatedAt'>): Promise<ContentCollection> {
+  async createCollection(
+    collection: Omit<ContentCollection, 'id' | 'createdAt' | 'updatedAt'>
+  ): Promise<ContentCollection> {
     const id = this.generateId();
     const now = new Date().toISOString();
 
@@ -199,7 +229,7 @@ export class ContentManager implements IContentManager {
       ...collection,
       id,
       createdAt: now,
-      updatedAt: now
+      updatedAt: now,
     };
 
     this.collections.set(id, newCollection);
@@ -218,7 +248,10 @@ export class ContentManager implements IContentManager {
   /**
    * Add content to collection
    */
-  async addToCollection(collectionId: string, contentId: string): Promise<boolean> {
+  async addToCollection(
+    collectionId: string,
+    contentId: string
+  ): Promise<boolean> {
     const collection = await this.getCollection(collectionId);
     if (!collection || !this.content.has(contentId)) {
       return false;
@@ -237,7 +270,10 @@ export class ContentManager implements IContentManager {
   /**
    * Remove content from collection
    */
-  async removeFromCollection(collectionId: string, contentId: string): Promise<boolean> {
+  async removeFromCollection(
+    collectionId: string,
+    contentId: string
+  ): Promise<boolean> {
     const collection = await this.getCollection(collectionId);
     if (!collection) {
       return false;
@@ -297,7 +333,10 @@ export class ContentManager implements IContentManager {
   async getRecentContent(limit: number = 10): Promise<StaticContent[]> {
     await this.initializeContent();
     return Array.from(this.content.values())
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      )
       .slice(0, limit);
   }
 
@@ -314,7 +353,10 @@ export class ContentManager implements IContentManager {
     return `content_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
 
-  private calculateRelevanceScore(content: StaticContent, _options: ContentSearchOptions): number {
+  private calculateRelevanceScore(
+    content: StaticContent,
+    _options: ContentSearchOptions
+  ): number {
     let score = 100; // Base score
 
     // Boost popular content
@@ -327,7 +369,9 @@ export class ContentManager implements IContentManager {
     }
 
     // Boost recent content
-    const daysSinceCreated = (Date.now() - new Date(content.createdAt).getTime()) / (1000 * 60 * 60 * 24);
+    const daysSinceCreated =
+      (Date.now() - new Date(content.createdAt).getTime()) /
+      (1000 * 60 * 60 * 24);
     if (daysSinceCreated < 30) {
       score += (30 - daysSinceCreated) * 0.5;
     }
@@ -335,22 +379,32 @@ export class ContentManager implements IContentManager {
     return Math.round(score);
   }
 
-  private getMatchedFields(content: StaticContent, options: ContentSearchOptions): string[] {
+  private getMatchedFields(
+    content: StaticContent,
+    options: ContentSearchOptions
+  ): string[] {
     const matched: string[] = [];
     const language = options.language || 'fi';
     const query = options.query?.toLowerCase();
 
     if (query) {
-      if (content.title[language].toLowerCase().includes(query)) matched.push('title');
-      if (content.description[language].toLowerCase().includes(query)) matched.push('description');
-      if (content.content[language].toLowerCase().includes(query)) matched.push('content');
-      if (content.tags.some(tag => tag.toLowerCase().includes(query))) matched.push('tags');
+      if (content.title[language].toLowerCase().includes(query))
+        matched.push('title');
+      if (content.description[language].toLowerCase().includes(query))
+        matched.push('description');
+      if (content.content[language].toLowerCase().includes(query))
+        matched.push('content');
+      if (content.tags.some(tag => tag.toLowerCase().includes(query)))
+        matched.push('tags');
     }
 
     return matched;
   }
 
-  private generateHighlights(content: StaticContent, options: ContentSearchOptions): { [key: string]: string } {
+  private generateHighlights(
+    content: StaticContent,
+    options: ContentSearchOptions
+  ): { [key: string]: string } {
     const highlights: { [key: string]: string } = {};
     const language = options.language || 'fi';
     const query = options.query?.toLowerCase();
@@ -376,22 +430,24 @@ export class ContentManager implements IContentManager {
   private async saveToStorage(): Promise<void> {
     // In a real implementation, this would save to localStorage or IndexedDB
     // For now, we keep everything in memory
-    console.log('💾 Content saved to memory storage');
+    console.debug('💾 Content saved to memory storage');
   }
 
   private async loadSampleContent(): Promise<void> {
     // Load sample Finnish floorball content
-    const sampleContent: Array<Omit<StaticContent, 'id' | 'createdAt' | 'updatedAt'>> = [
+    const sampleContent: Array<
+      Omit<StaticContent, 'id' | 'createdAt' | 'updatedAt'>
+    > = [
       {
         type: 'drill',
         category: 'passing',
         title: {
           fi: 'Perusyöttöharjoitus',
-          en: 'Basic Passing Drill'
+          en: 'Basic Passing Drill',
         },
         description: {
           fi: 'Kehittää tarkkuutta ja mailankäsittelyä lyhyissä syötöissä',
-          en: 'Develops accuracy and stick handling in short passes'
+          en: 'Develops accuracy and stick handling in short passes',
         },
         content: {
           fi: `# Perusyöttöharjoitus
@@ -423,7 +479,7 @@ Develop players' passing accuracy and stick handling.
 ## Key Points
 - Keep eyes up when passing
 - Use the full blade of the stick
-- Follow through after the pass`
+- Follow through after the pass`,
         },
         tags: ['syöttö', 'perustaidot', 'tarkkuus'],
         difficulty: 'beginner',
@@ -437,19 +493,19 @@ Develop players' passing accuracy and stick handling.
           likes: 8,
           isFavorite: false,
           relatedContent: [],
-          seasons: ['all']
-        }
+          seasons: ['all'],
+        },
       },
       {
         type: 'tactic',
         category: 'offense',
         title: {
           fi: 'Ylivoima 5v4 perusasetelma',
-          en: '5v4 Power Play Basic Formation'
+          en: '5v4 Power Play Basic Formation',
         },
         description: {
           fi: 'Klassinen ylivoimamuodostelma hyökkäysalueella',
-          en: 'Classic power play formation in the offensive zone'
+          en: 'Classic power play formation in the offensive zone',
         },
         content: {
           fi: `# Ylivoima 5v4 Perusasetelma
@@ -483,7 +539,7 @@ Develop players' passing accuracy and stick handling.
 
 ## Special Situations
 - If puck goes out → quick recovery to QB
-- Short-handed → defensive setup`
+- Short-handed → defensive setup`,
         },
         tags: ['ylivoima', 'taktiikka', 'hyökkäys'],
         difficulty: 'intermediate',
@@ -497,9 +553,9 @@ Develop players' passing accuracy and stick handling.
           likes: 12,
           isFavorite: true,
           relatedContent: [],
-          seasons: ['in-season']
-        }
-      }
+          seasons: ['in-season'],
+        },
+      },
     ];
 
     // Create sample content
@@ -507,7 +563,7 @@ Develop players' passing accuracy and stick handling.
       await this.createContent(content);
     }
 
-    console.log('📚 Sample content loaded:', sampleContent.length, 'items');
+    console.debug('📚 Sample content loaded:', sampleContent.length, 'items');
   }
 }
 

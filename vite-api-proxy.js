@@ -5,7 +5,7 @@
 
 import { createRequire } from 'module';
 import { fileURLToPath } from 'url';
-import { dirname, resolve } from 'path';
+import { dirname } from 'path';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -35,7 +35,7 @@ export function apiProxy() {
       });
 
       // Add API middleware
-      server.middlewares.use('/api/drive', async (req, res, next) => {
+      server.middlewares.use('/api/drive', async (req, res, _next) => {
         console.log('📡 Middleware received request:', req.method, req.url);
         
         // Handle CORS preflight

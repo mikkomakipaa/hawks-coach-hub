@@ -93,7 +93,7 @@ self.addEventListener('fetch', event => {
   }
 
   // Determine cache strategy based on request
-  let strategy = getCacheStrategy(request, url);
+  const strategy = getCacheStrategy(request, url);
 
   event.respondWith(
     handleRequest(request, url, strategy)

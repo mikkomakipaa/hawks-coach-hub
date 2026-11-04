@@ -10,7 +10,7 @@ import {
   getFolderMappingsForTab,
   getRelevantFolderIds,
   getSearchKeywordsForTab,
-  updateFolderMappingsWithRealIds
+  updateFolderMappingsWithRealIds,
 } from '@/config/folder-mappings';
 
 export interface TabSearchOptions {
@@ -53,7 +53,13 @@ export class TabSearchService {
       folders.map(f => ({ id: f.id, name: f.name, parents: f.parents || [] }))
     );
 
-    console.log('🔍 Tab Search Service initialized with', files.length, 'files and', folders.length, 'folders');
+    console.debug(
+      '🔍 Tab Search Service initialized with',
+      files.length,
+      'files and',
+      folders.length,
+      'folders'
+    );
   }
 
   /**
@@ -74,33 +80,51 @@ export class TabSearchService {
     // Get relevant folder IDs for this tab
     const relevantFolderIds = getRelevantFolderIds(
       options.tabId,
-      this.allFolders.map(f => ({ id: f.id, name: f.name, parents: f.parents || [] }))
+      this.allFolders.map(f => ({
+        id: f.id,
+        name: f.name,
+        parents: f.parents || [],
+      }))
     );
 
     // Filter files to only those in relevant folders
     const scopedFiles = this.filterFilesByFolders(relevantFolderIds);
 
     // Perform search within scoped files
-    const searchResults = this.searchService.filterFilesBySearch(scopedFiles, options.query);
+    const searchResults = this.searchService.filterFilesBySearch(
+      scopedFiles,
+      options.query
+    );
 
     // Apply keyword boosting for this tab
-    const boostedResults = this.applyKeywordBoosting(searchResults, options.tabId, options.query);
+    const boostedResults = this.applyKeywordBoosting(
+      searchResults,
+      options.tabId,
+      options.query
+    );
 
     // Include folders if requested
-    const folders = options.includeFolders ?
-      this.searchFoldersInScope(relevantFolderIds, options.query) : [];
+    const folders = options.includeFolders
+      ? this.searchFoldersInScope(relevantFolderIds, options.query)
+      : [];
 
     // Include static content if tab supports it
-    const staticContent = (options.includeStaticContent && config.searchScope === 'hybrid') ?
-      await this.searchStaticContent(options.tabId, options.query) : [];
+    const staticContent =
+      options.includeStaticContent && config.searchScope === 'hybrid'
+        ? await this.searchStaticContent(options.tabId, options.query)
+        : [];
 
     return {
       files: boostedResults.slice(0, options.maxResults || 50),
       folders,
       staticContent,
-      totalResults: boostedResults.length + folders.length + staticContent.length,
+      totalResults:
+        boostedResults.length + folders.length + staticContent.length,
       searchScope: config.searchScope,
-      appliedFilters: [`tab:${options.tabId}`, `folders:${relevantFolderIds.length}`]
+      appliedFilters: [
+        `tab:${options.tabId}`,
+        `folders:${relevantFolderIds.length}`,
+      ],
     };
   }
 
@@ -121,8 +145,13 @@ export class TabSearchService {
   /**
    * Search folders within scope
    */
-  private searchFoldersInScope(folderIds: string[], query: string): DriveFolder[] {
-    const scopedFolders = this.allFolders.filter(folder => folderIds.includes(folder.id));
+  private searchFoldersInScope(
+    folderIds: string[],
+    query: string
+  ): DriveFolder[] {
+    const scopedFolders = this.allFolders.filter(folder =>
+      folderIds.includes(folder.id)
+    );
 
     if (!query.trim()) return scopedFolders;
 
@@ -135,7 +164,11 @@ export class TabSearchService {
   /**
    * Apply keyword boosting specific to the tab
    */
-  private applyKeywordBoosting(files: DriveFile[], tabId: string, query: string): DriveFile[] {
+  private applyKeywordBoosting(
+    files: DriveFile[],
+    tabId: string,
+    query: string
+  ): DriveFile[] {
     const keywords = getSearchKeywordsForTab(tabId);
     if (keywords.length === 0) return files;
 
@@ -165,22 +198,25 @@ export class TabSearchService {
     });
 
     // Sort by score (highest first) and return files
-    return scoredFiles
-      .sort((a, b) => b.score - a.score)
-      .map(item => item.file);
+    return scoredFiles.sort((a, b) => b.score - a.score).map(item => item.file);
   }
 
   /**
    * Search static content for the tab
    */
-  private async searchStaticContent(tabId: string, query: string): Promise<any[]> {
+  private async searchStaticContent(
+    tabId: string,
+    query: string
+  ): Promise<any[]> {
     // For now, delegate to enhanced search for static content
     // This can be expanded when static content is fully implemented
     try {
       const results = await enhancedSearch.searchStaticContent(query);
       // Filter by tab category if possible
-      return results.filter((content: any) =>
-        content.category && this.isContentRelevantToTab(content.category, tabId)
+      return results.filter(
+        (content: any) =>
+          content.category &&
+          this.isContentRelevantToTab(content.category, tabId)
       );
     } catch (error) {
       console.warn('Static content search not available:', error);
@@ -191,12 +227,21 @@ export class TabSearchService {
   /**
    * Check if static content category is relevant to the tab
    */
-  private isContentRelevantToTab(contentCategory: string, tabId: string): boolean {
+  private isContentRelevantToTab(
+    contentCategory: string,
+    tabId: string
+  ): boolean {
     const categoryMapping: Record<string, string[]> = {
-      'sport-training': ['basic-skills', 'passing', 'shooting', 'defense', 'offense'],
-      'fitness': ['fitness', 'conditioning', 'strength'],
+      'sport-training': [
+        'basic-skills',
+        'passing',
+        'shooting',
+        'defense',
+        'offense',
+      ],
+      fitness: ['fitness', 'conditioning', 'strength'],
       'game-situations': ['strategy', 'tactics', 'roles'],
-      'handbook': ['guide', 'theory', 'session', 'quick-ref'] // All categories for handbook
+      handbook: ['guide', 'theory', 'session', 'quick-ref'], // All categories for handbook
     };
 
     const relevantCategories = categoryMapping[tabId] || [];
@@ -213,7 +258,7 @@ export class TabSearchService {
       staticContent: [],
       totalResults: 0,
       searchScope: 'hybrid',
-      appliedFilters: [`tab:${tabId}`]
+      appliedFilters: [`tab:${tabId}`],
     };
   }
 
@@ -227,12 +272,21 @@ export class TabSearchService {
     keywords: string[];
   } {
     if (!this.isInitialized) {
-      return { availableFiles: 0, availableFolders: 0, scopedFolders: 0, keywords: [] };
+      return {
+        availableFiles: 0,
+        availableFolders: 0,
+        scopedFolders: 0,
+        keywords: [],
+      };
     }
 
     const relevantFolderIds = getRelevantFolderIds(
       tabId,
-      this.allFolders.map(f => ({ id: f.id, name: f.name, parents: f.parents || [] }))
+      this.allFolders.map(f => ({
+        id: f.id,
+        name: f.name,
+        parents: f.parents || [],
+      }))
     );
 
     const scopedFiles = this.filterFilesByFolders(relevantFolderIds);
@@ -242,7 +296,7 @@ export class TabSearchService {
       availableFiles: scopedFiles.length,
       availableFolders: this.allFolders.length,
       scopedFolders: relevantFolderIds.length,
-      keywords
+      keywords,
     };
   }
 
@@ -252,19 +306,25 @@ export class TabSearchService {
   debugGetFolderMappings(): Record<string, any> {
     const debug: Record<string, any> = {};
 
-    ['handbook', 'sport-training', 'fitness', 'game-situations'].forEach(tabId => {
-      const config = getFolderMappingsForTab(tabId);
-      const stats = this.getTabSearchStats(tabId);
+    ['handbook', 'sport-training', 'fitness', 'game-situations'].forEach(
+      tabId => {
+        const config = getFolderMappingsForTab(tabId);
+        const stats = this.getTabSearchStats(tabId);
 
-      debug[tabId] = {
-        config,
-        stats,
-        relevantFolders: getRelevantFolderIds(
-          tabId,
-          this.allFolders.map(f => ({ id: f.id, name: f.name, parents: f.parents || [] }))
-        )
-      };
-    });
+        debug[tabId] = {
+          config,
+          stats,
+          relevantFolders: getRelevantFolderIds(
+            tabId,
+            this.allFolders.map(f => ({
+              id: f.id,
+              name: f.name,
+              parents: f.parents || [],
+            }))
+          ),
+        };
+      }
+    );
 
     return debug;
   }
@@ -272,11 +332,15 @@ export class TabSearchService {
   /**
    * Get all folder names for debugging
    */
-  debugGetAllFolderNames(): Array<{ id: string; name: string; parents?: string[] }> {
+  debugGetAllFolderNames(): Array<{
+    id: string;
+    name: string;
+    parents?: string[];
+  }> {
     return this.allFolders.map(f => ({
       id: f.id,
       name: f.name,
-      parents: f.parents || []
+      parents: f.parents || [],
     }));
   }
 }

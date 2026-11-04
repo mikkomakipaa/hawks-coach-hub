@@ -33,8 +33,11 @@ export class StaticContentDisplay {
 
     const title = content.title[this.currentLanguage];
     const description = content.description[this.currentLanguage];
-    const categoryLabel = FinnishLabels[content.category]?.[this.currentLanguage] || content.category;
-    const typeLabel = FinnishLabels[content.type]?.[this.currentLanguage] || content.type;
+    const categoryLabel =
+      FinnishLabels[content.category]?.[this.currentLanguage] ||
+      content.category;
+    const typeLabel =
+      FinnishLabels[content.type]?.[this.currentLanguage] || content.type;
 
     contentElement.innerHTML = `
       <div class="content-item-header">
@@ -76,9 +79,12 @@ export class StaticContentDisplay {
 
           <div class="content-equipment">
             <span class="equipment-label">Tarvikkeet:</span>
-            ${content.equipment.map(eq =>
-              `<span class="equipment-item">${FinnishLabels[eq]?.[this.currentLanguage] || eq}</span>`
-            ).join(', ')}
+            ${content.equipment
+              .map(
+                eq =>
+                  `<span class="equipment-item">${FinnishLabels[eq]?.[this.currentLanguage] || eq}</span>`
+              )
+              .join(', ')}
           </div>
         </div>
       </div>
@@ -114,7 +120,10 @@ export class StaticContentDisplay {
    */
   async renderContentList(category?: ContentCategory): Promise<void> {
     const content = category
-      ? await contentManager.getContentByCategory(category, this.currentLanguage)
+      ? await contentManager.getContentByCategory(
+          category,
+          this.currentLanguage
+        )
       : await contentManager.getAllContent();
 
     if (content.length === 0) {
@@ -138,7 +147,8 @@ export class StaticContentDisplay {
     let html = '<div class="static-content-list">';
 
     for (const [categoryName, items] of Object.entries(grouped)) {
-      const categoryLabel = FinnishLabels[categoryName]?.[this.currentLanguage] || categoryName;
+      const categoryLabel =
+        FinnishLabels[categoryName]?.[this.currentLanguage] || categoryName;
 
       html += `
         <div class="content-category-section">
@@ -301,7 +311,9 @@ export class StaticContentDisplay {
     document.body.appendChild(modal);
 
     // Add form submission handler
-    const form = document.getElementById('contentCreationForm') as HTMLFormElement;
+    const form = document.getElementById(
+      'contentCreationForm'
+    ) as HTMLFormElement;
     form.addEventListener('submit', this.handleFormSubmission.bind(this));
   }
 
@@ -315,13 +327,21 @@ export class StaticContentDisplay {
     const formData = new FormData(form);
 
     // Extract form data
-    const ageGroups = Array.from(form.querySelectorAll('input[name="ageGroup"]:checked'))
-      .map(input => (input as HTMLInputElement).value) as any[];
+    const ageGroups = Array.from(
+      form.querySelectorAll('input[name="ageGroup"]:checked')
+    ).map(input => (input as HTMLInputElement).value) as any[];
 
-    const equipment = Array.from(form.querySelectorAll('input[name="equipment"]:checked'))
-      .map(input => (input as HTMLInputElement).value) as any[];
+    const equipment = Array.from(
+      form.querySelectorAll('input[name="equipment"]:checked')
+    ).map(input => (input as HTMLInputElement).value) as any[];
 
-    const tags = formData.get('tags')?.toString().split(',').map(t => t.trim()).filter(t => t) || [];
+    const tags =
+      formData
+        .get('tags')
+        ?.toString()
+        .split(',')
+        .map(t => t.trim())
+        .filter(t => t) || [];
 
     try {
       await contentManager.createContent({
@@ -329,15 +349,21 @@ export class StaticContentDisplay {
         category: formData.get('category') as any,
         title: {
           fi: formData.get('titleFi') as string,
-          en: formData.get('titleEn') as string || formData.get('titleFi') as string
+          en:
+            (formData.get('titleEn') as string) ||
+            (formData.get('titleFi') as string),
         },
         description: {
           fi: formData.get('descriptionFi') as string,
-          en: formData.get('descriptionEn') as string || formData.get('descriptionFi') as string
+          en:
+            (formData.get('descriptionEn') as string) ||
+            (formData.get('descriptionFi') as string),
         },
         content: {
           fi: formData.get('contentFi') as string,
-          en: formData.get('contentEn') as string || formData.get('contentFi') as string
+          en:
+            (formData.get('contentEn') as string) ||
+            (formData.get('contentFi') as string),
         },
         tags,
         difficulty: formData.get('difficulty') as any,
@@ -351,8 +377,8 @@ export class StaticContentDisplay {
           likes: 0,
           isFavorite: false,
           relatedContent: [],
-          seasons: ['all']
-        }
+          seasons: ['all'],
+        },
       });
 
       // Close modal and refresh content
@@ -361,7 +387,6 @@ export class StaticContentDisplay {
 
       // Show success message
       this.showToast('Sisältö luotu onnistuneesti!', 'success');
-
     } catch (error) {
       console.error('Failed to create content:', error);
       this.showToast('Sisällön luonti epäonnistui', 'error');
@@ -369,15 +394,20 @@ export class StaticContentDisplay {
   }
 
   // Helper methods
-  private groupByCategory(content: StaticContent[]): Record<string, StaticContent[]> {
-    return content.reduce((groups, item) => {
-      const category = item.category;
-      if (!groups[category]) {
-        groups[category] = [];
-      }
-      groups[category].push(item);
-      return groups;
-    }, {} as Record<string, StaticContent[]>);
+  private groupByCategory(
+    content: StaticContent[]
+  ): Record<string, StaticContent[]> {
+    return content.reduce(
+      (groups, item) => {
+        const category = item.category;
+        if (!groups[category]) {
+          groups[category] = [];
+        }
+        groups[category].push(item);
+        return groups;
+      },
+      {} as Record<string, StaticContent[]>
+    );
   }
 
   private escapeHtml(text: string): string {
@@ -401,14 +431,18 @@ export class StaticContentDisplay {
     return new Date(dateString).toLocaleDateString('fi-FI', {
       year: 'numeric',
       month: 'short',
-      day: 'numeric'
+      day: 'numeric',
     });
   }
 
   private showToast(message: string, type: 'success' | 'error'): void {
     // Integrate with existing toast system
     if ((window as any).showToast) {
-      (window as any).showToast('Sisältö', message, type === 'success' ? 'info' : 'error');
+      (window as any).showToast(
+        'Sisältö',
+        message,
+        type === 'success' ? 'info' : 'error'
+      );
     }
   }
 
@@ -424,7 +458,9 @@ export class StaticContentDisplay {
 (window as any).StaticContent = {
   async toggleFavorite(contentId: string): Promise<void> {
     const isFavorite = await contentManager.toggleFavorite(contentId);
-    const btn = document.querySelector(`button[onclick="window.StaticContent.toggleFavorite('${contentId}')"]`);
+    const btn = document.querySelector(
+      `button[onclick="window.StaticContent.toggleFavorite('${contentId}')"]`
+    );
     if (btn) {
       btn.textContent = isFavorite ? '★' : '☆';
       btn.className = `favorite-btn ${isFavorite ? 'active' : ''}`;
@@ -432,9 +468,13 @@ export class StaticContentDisplay {
   },
 
   expandContent(contentId: string): void {
-    const contentElement = document.querySelector(`[data-content-id="${contentId}"]`);
+    const contentElement = document.querySelector(
+      `[data-content-id="${contentId}"]`
+    );
     if (contentElement) {
-      const preview = contentElement.querySelector('.content-preview') as HTMLElement;
+      const preview = contentElement.querySelector(
+        '.content-preview'
+      ) as HTMLElement;
       const isExpanded = preview.style.display !== 'none';
 
       preview.style.display = isExpanded ? 'none' : 'block';
@@ -456,12 +496,12 @@ export class StaticContentDisplay {
   },
 
   editContent(contentId: string): void {
-    console.log('Edit content:', contentId);
+    console.debug('Edit content:', contentId);
     // TODO: Implement content editing
   },
 
   useInSession(contentId: string): void {
-    console.log('Add to session:', contentId);
+    console.debug('Add to session:', contentId);
     // TODO: Integrate with session planning
-  }
+  },
 };

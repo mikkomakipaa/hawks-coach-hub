@@ -27,7 +27,9 @@ class AppStateManager {
   private state: AppState;
   private sessionState: SessionPlanningState;
   private stateChangeListeners: Array<(state: AppState) => void> = [];
-  private sessionChangeListeners: Array<(sessionState: SessionPlanningState) => void> = [];
+  private sessionChangeListeners: Array<
+    (sessionState: SessionPlanningState) => void
+  > = [];
 
   constructor() {
     this.state = this.createInitialState();
@@ -160,53 +162,50 @@ class AppStateManager {
   updateFolderCache(): void {
     //console.log('🗂️ Updating folder cache:', this.state.allFolders.length, 'folders');
     this.state.folderCache.clear();
-    
-    let foldersWithFiles = 0;
-    this.state.allFolders.forEach((folder) => {
-      // Simple file counting: files that have this folder as parent  
-      const directFiles = this.state.allFiles.filter(file => 
-        file.parents && file.parents.includes(folder.id)
+
+    this.state.allFolders.forEach(folder => {
+      // Simple file counting: files that have this folder as parent
+      const directFiles = this.state.allFiles.filter(
+        file => file.parents && file.parents.includes(folder.id)
       );
-      
+
       // Calculate hierarchy level
       const hierarchyLevel = this.calculateFolderLevel(folder.id);
-      
+
       // Create extended folder object with file count and hierarchy level
       const extendedFolder = {
         ...folder,
         fileCount: directFiles.length,
-        hierarchyLevel
+        hierarchyLevel,
       };
-      
+
       this.state.folderCache.set(folder.id, extendedFolder);
-      
-      if (directFiles.length > 0) {
-        foldersWithFiles++;
-      }
     });
 
-    //console.log(`✅ Cached ${this.state.allFolders.length} folders, ${foldersWithFiles} have files`);
+    //console.log(`✅ Cached ${this.state.allFolders.length} folders`);
     this.notifyStateChange();
   }
 
   private calculateFolderLevel(folderId: string): number {
     const HAWKS_FOLDER_ID = '1ZF6AHx62MXfkgs7-xbrMxj4r9sdyKzUb';
-    
+
     if (folderId === HAWKS_FOLDER_ID) return -1; // Root folder itself
-    
+
     const folder = this.state.allFolders.find(f => f.id === folderId);
     if (!folder || !folder.parents || folder.parents.length === 0) return 999; // Unknown/orphaned
-    
+
     const parentId = folder.parents[0];
     if (!parentId) return 999; // No parent ID
     if (parentId === HAWKS_FOLDER_ID) return 0; // Direct child of Hawks root
-    
+
     // Recursively calculate parent level + 1
     return this.calculateFolderLevel(parentId) + 1;
   }
 
   private updateTotalPages(): void {
-    this.state.totalPages = Math.ceil(this.state.filteredFiles.length / this.state.itemsPerPage);
+    this.state.totalPages = Math.ceil(
+      this.state.filteredFiles.length / this.state.itemsPerPage
+    );
   }
 
   // Reset state
@@ -223,7 +222,7 @@ class AppStateManager {
   // State listeners
   onStateChange(listener: (state: AppState) => void): () => void {
     this.stateChangeListeners.push(listener);
-    
+
     // Return unsubscribe function
     return () => {
       const index = this.stateChangeListeners.indexOf(listener);
@@ -233,9 +232,11 @@ class AppStateManager {
     };
   }
 
-  onSessionChange(listener: (sessionState: SessionPlanningState) => void): () => void {
+  onSessionChange(
+    listener: (sessionState: SessionPlanningState) => void
+  ): () => void {
     this.sessionChangeListeners.push(listener);
-    
+
     // Return unsubscribe function
     return () => {
       const index = this.sessionChangeListeners.indexOf(listener);

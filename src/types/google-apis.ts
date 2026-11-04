@@ -34,9 +34,8 @@ export interface TokenResponse {
 }
 
 export interface TokenClient {
-  // eslint-disable-next-line no-unused-vars
   callback: ((response: TokenResponse) => void) | null;
-  // eslint-disable-next-line no-unused-vars
+
   requestAccessToken: (options?: { prompt?: string }) => void;
 }
 
@@ -59,27 +58,23 @@ export type ToastType = 'success' | 'error' | 'warning' | 'info';
 
 // GAPI types (basic)
 interface Gapi {
-   
   load: (
-    // eslint-disable-next-line no-unused-vars
     api: string,
-    // eslint-disable-next-line no-unused-vars
+
     options: { callback?: () => void; onerror?: (error: any) => void }
   ) => void;
   client: {
-    // eslint-disable-next-line no-unused-vars
     init: (config: {
       apiKey: string;
       discoveryDocs?: string[];
     }) => Promise<void>;
-    // eslint-disable-next-line no-unused-vars
+
     load: (api: string, version: string) => Promise<void>;
     getToken: () => { access_token: string } | null;
-    // eslint-disable-next-line no-unused-vars
+
     setToken: (token: string | { access_token: string } | null) => void;
     drive: {
       files: {
-        // eslint-disable-next-line no-unused-vars
         list: (params: {
           pageSize?: number;
           pageToken?: string | null;
@@ -95,13 +90,12 @@ interface Gapi {
 interface GoogleAccounts {
   accounts: {
     oauth2: {
-      // eslint-disable-next-line no-unused-vars
       initTokenClient: (config: {
         client_id: string;
         scope: string;
         callback: string;
       }) => TokenClient;
-      // eslint-disable-next-line no-unused-vars
+
       revoke: (token: string) => void;
     };
   };
@@ -109,7 +103,6 @@ interface GoogleAccounts {
 
 // Global window extensions
 declare global {
-  // eslint-disable-next-line no-unused-vars
   interface Window {
     gapi: Gapi;
     google: GoogleAccounts;
@@ -119,8 +112,7 @@ declare global {
     gisLoaded?: boolean;
   }
 
-  // eslint-disable-next-line no-unused-vars
   const gapi: Gapi;
-  // eslint-disable-next-line no-unused-vars
+
   const google: GoogleAccounts;
 }

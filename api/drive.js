@@ -230,7 +230,6 @@ async function getAllFilesAndFoldersSlowFallback(drive, folderId = HAWKS_FOLDER_
   const foldersToProcess = [folderId];
   const processedFolders = new Set();
   let processedCount = 0;
-  let apiCallCount = 0;
 
   while (foldersToProcess.length > 0) {
     const currentFolderId = foldersToProcess.shift();
@@ -250,7 +249,6 @@ async function getAllFilesAndFoldersSlowFallback(drive, folderId = HAWKS_FOLDER_
         10000,
         `Slow API call timed out for folder ${processedCount}`
       );
-      apiCallCount++;
 
       const items = response.data.files || [];
       console.log(`📁 Slow Folder ${processedCount}: Found ${items.length} items`);
