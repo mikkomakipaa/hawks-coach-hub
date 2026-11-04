@@ -25,7 +25,7 @@ Hawks Coach Hub started as a read-only Google Drive browser for Hawks Helsinki f
 - **Program** (planned): a season/cycle for an age group made of weeks, each with a theme and sessions.
 - **Browse mode**: legacy anonymous, read-only Google Drive browser via a service account. Must stay fast and read-only.
 - **Editor/import**: authenticated flows for authoring drills and reviewing imports from legacy files.
-- **Storage-agnostic domain contracts** with an Airtable adapter first; Supabase is the possible follow-up (decision tracked in an Issue).
+- **Storage-agnostic domain contracts** with an Airtable adapter first; Postgres on Neon is the proposed follow-up (decision tracked in an Issue).
 
 ## Project Goals
 
@@ -197,7 +197,7 @@ Legacy note: `docs/archive/` is reference only. If it conflicts with top-level `
 
 - Domain contracts are storage-agnostic (`docs/DATA_MODEL.md`); storage lives in adapters under `api/_lib/`.
 - New fields must be backward compatible with existing records.
-- If storage moves to Supabase: RLS on every table, never edit existing migrations, add new ones.
+- If storage moves to Postgres (Neon): RLS on every table, never edit existing migrations, add new ones.
 
 ### Frontend
 

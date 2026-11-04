@@ -371,6 +371,8 @@ Notes:
 
 ## Decision 11: Airtable First, Supabase Later for Planner Backend
 
+> **Update 2026-11-04**: the proposed follow-up target is now Postgres on Neon instead of Supabase (see `plans/plan-002-junior-training-programs.md`, section 9a). An ADR will confirm it.
+
 **Status**: Accepted
 
 ### Decision
