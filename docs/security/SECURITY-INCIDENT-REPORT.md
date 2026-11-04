@@ -14,13 +14,14 @@ A Google Cloud Service Account private key was accidentally committed to the pub
 - **14:23 UTC**: Commit `4a8fe4b` introduced service account JSON file with private key
 - **15:44 UTC**: Performance optimizations deployed (credentials still exposed)
 - **16:27 UTC**: Security incident discovered during repository audit
-- **16:35 UTC**: Git history cleaned using `git filter-repo` 
+- **16:35 UTC**: Git history cleaned using `git filter-repo`
 - **16:40 UTC**: Force-pushed cleaned history to remove all traces
 - **16:45 UTC**: Enhanced .gitignore to prevent future incidents
 
 ## Exposed Information
 
 The following sensitive data was exposed in commit `4a8fe4b`:
+
 - **Service Account Email**: `hawks-drive-reader@coach-hub-469817.iam.gserviceaccount.com`
 - **Private Key**: RSA 2048-bit private key (full PEM format)
 - **Project ID**: `coach-hub-469817`
@@ -36,13 +37,16 @@ The following sensitive data was exposed in commit `4a8fe4b`:
 ## Remediation Actions Taken
 
 ### ✅ Immediate Response (Completed)
+
 1. **Git History Cleaned**: Used `git filter-repo` to completely remove the credentials file from all Git history
 2. **Force Push**: Updated public repository to remove all traces of the credentials
 3. **Enhanced .gitignore**: Added comprehensive patterns to prevent future credential commits
 4. **Working Directory**: Confirmed no credential files remain locally
 
 ### 🔄 Required Follow-up Actions (URGENT)
-1. **Revoke Compromised Service Account**: 
+
+1. **Revoke Compromised Service Account**:
+
    ```bash
    gcloud iam service-accounts delete \
      hawks-drive-reader@coach-hub-469817.iam.gserviceaccount.com \
@@ -50,6 +54,7 @@ The following sensitive data was exposed in commit `4a8fe4b`:
    ```
 
 2. **Create New Service Account**:
+
    ```bash
    gcloud iam service-accounts create hawks-coach-hub-v2 \
      --display-name="Hawks Coach Hub v2" \
@@ -63,6 +68,7 @@ The following sensitive data was exposed in commit `4a8fe4b`:
 ## Prevention Measures Implemented
 
 ### Enhanced .gitignore
+
 ```gitignore
 # Service Account Credentials & API Keys (NEVER COMMIT)
 *service-account*.json
@@ -76,6 +82,7 @@ coach-hub-*.json
 ```
 
 ### Security Best Practices
+
 - All credentials must use environment variables only
 - Never commit authentication files to Git
 - Regular security audits of repository contents

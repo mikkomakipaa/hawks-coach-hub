@@ -1,252 +1,69 @@
-# Hawks Coach Hub - High-Performance Google Drive Interface
+# coach-hub
 
-A modern, high-performance web application for Hawks Helsinki coaches to access training resources, drills, and tactical materials. Built with TypeScript in strict mode, featuring **sub-5-second loading times**, intelligent caching, and enterprise-grade CI/CD pipeline.
+Documentation lives in `docs/`; work is tracked in GitHub Issues and `plans/` (see [AGENTS.md](AGENTS.md)).
 
-## 🚀 Features
+## What This Project Is
 
-### ⚡ High Performance
+Hawks Coach Hub currently ships as a read-only Google Drive browser for Hawks Helsinki coaching staff plus additive planner/editor routes for structured drills, sessions, sharing, and import review.
 
-- **5-second loading** (down from 30+ seconds)
-- **Intelligent caching** with 5-minute TTL reduces API calls by 90%+
-- **Parallel batch processing** of Google Drive API requests
-- **Progressive loading indicators** with Finnish language support
-- **Service account authentication** - no user login required
-- **Optimized bundle size** with Vite build system and Terser minification
+## Documentation Map
 
-### 🏒 Coach-Focused Design
+| Document                                                 | Summary                                                                                                                                                                                                                     | Quick Links                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| -------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [Core Architecture Decisions](docs/CORE_ARCHITECTURE.md) | Hawks Coach Hub currently ships as a read-only Google Drive browser for Hawks Helsinki coaching staff plus additive planner/editor routes for structured drills, sessions, sharing, and import review.                      | [Context](docs/CORE_ARCHITECTURE.md#context)<br>[Decision 1: Vanilla TypeScript (No Frontend Framework)](docs/CORE_ARCHITECTURE.md#decision-1-vanilla-typescript-no-frontend-framework)<br>[Decision 2: Vercel Serverless Function as API Proxy](docs/CORE_ARCHITECTURE.md#decision-2-vercel-serverless-function-as-api-proxy)                                                                                                     |
+| [Component Reference](docs/COMPONENTS.md)                | Hawks Coach Hub uses **vanilla TypeScript** — no React or other component framework. "Components" are TypeScript classes or module singletons that manage sections of the DOM directly.                                     | [Architecture Note](docs/COMPONENTS.md#architecture-note)<br>[Services](docs/COMPONENTS.md#services)<br>[Planned Planner/CMS Extension](docs/COMPONENTS.md#planned-plannercms-extension)                                                                                                                                                                                                                                           |
+| [Data Model](docs/DATA_MODEL.md)                         | Current shipped application:                                                                                                                                                                                                | [Overview](docs/DATA_MODEL.md#overview)<br>[Planner/CMS Route Boundary](docs/DATA_MODEL.md#plannercms-route-boundary)<br>[Core Data Types](docs/DATA_MODEL.md#core-data-types)                                                                                                                                                                                                                                                     |
+| [Design System](docs/DESIGN_SYSTEM.md)                   | Every design decision is evaluated against load time and interaction speed. No heavy animations, no layout-shift-causing elements, no large decorative images.                                                              | [Design Principles](docs/DESIGN_SYSTEM.md#design-principles)<br>[Color Palette](docs/DESIGN_SYSTEM.md#color-palette)<br>[Typography](docs/DESIGN_SYSTEM.md#typography)                                                                                                                                                                                                                                                             |
+| [Metrics & Performance Targets](docs/METRICS.md)         | The `PerformanceMonitor` utility (`src/utils/performance-monitor.ts`) logs timings in development for browse-mode work:                                                                                                     | [Performance Metrics](docs/METRICS.md#performance-metrics)<br>[Performance Monitoring in App](docs/METRICS.md#performance-monitoring-in-app)<br>[Future Observability (Not Yet Implemented)](docs/METRICS.md#future-observability-not-yet-implemented)                                                                                                                                                                             |
+| [Non-Functional Requirements (NFR)](docs/NFR.md)         | These NFRs now distinguish between:                                                                                                                                                                                         | [Performance](docs/NFR.md#performance)<br>[Security](docs/NFR.md#security)<br>[Reliability](docs/NFR.md#reliability)                                                                                                                                                                                                                                                                                                               |
+| [User Personas](docs/PERSONAS.md)                        | Age: 42 / Role: Head coach of Hawks Helsinki floorball team                                                                                                                                                                 | [Primary Persona: "Head Coach Harri"](docs/PERSONAS.md#primary-persona-head-coach-harri)<br>[Secondary Persona: "Assistant Coach Anu"](docs/PERSONAS.md#secondary-persona-assistant-coach-anu)<br>[Tertiary Persona: "Club Admin Mika"](docs/PERSONAS.md#tertiary-persona-club-admin-mika)                                                                                                                                         |
+| [Testing Strategy](docs/TESTING_STRATEGY.md)             | Focus on **critical path coverage** over 100% coverage. The app is a file browser — correctness of search, file rendering, and API integration matters most.                                                                | [Philosophy](docs/TESTING_STRATEGY.md#philosophy)<br>[Unit Tests (Vitest)](docs/TESTING_STRATEGY.md#unit-tests-vitest)<br>[Integration Tests](docs/TESTING_STRATEGY.md#integration-tests)                                                                                                                                                                                                                                          |
+| [User Journey Maps](docs/USER_JOURNEYS.md)               | Hawks Coach Hub now has two documented experience surfaces:                                                                                                                                                                 | [Journey Model](docs/USER_JOURNEYS.md#journey-model)<br>[Journey 1: Coach Finds a Drill Before Practice (Current Primary Flow)](docs/USER_JOURNEYS.md#journey-1-coach-finds-a-drill-before-practice-current-primary-flow)<br>[Journey 2: Coach Builds a Session From Structured Drills (Planned Primary Planner Flow)](docs/USER_JOURNEYS.md#journey-2-coach-builds-a-session-from-structured-drills-planned-primary-planner-flow) |
+| [Wireframes & Screen Layouts](docs/WIREFRAMES.md)        | Notes:                                                                                                                                                                                                                      | [Screen Index](docs/WIREFRAMES.md#screen-index)<br>[1. Browse Mode (Desktop)](docs/WIREFRAMES.md#1-browse-mode-desktop)<br>[2. Browse Mode (Mobile)](docs/WIREFRAMES.md#2-browse-mode-mobile)                                                                                                                                                                                                                                      |
+| [Component Library](docs/COMPONENT_LIBRARY.md)           | Browse mode, planner, and editor surfaces all share the same visual language (Hawks orange, system font, 12px/16px border-radius, 48px touch targets) but historically re-implemented buttons, badges, empty states, and... | [Why this library exists](docs/COMPONENT_LIBRARY.md#why-this-library-exists)<br>[Design token reference](docs/COMPONENT_LIBRARY.md#design-token-reference)<br>[Components](docs/COMPONENT_LIBRARY.md#components)                                                                                                                                                                                                                   |
+| [Design Improvement Log](docs/DESIGN_IMPROVEMENTS.md)    | No summary paragraph found in document intro.                                                                                                                                                                               | [Active Improvements](docs/DESIGN_IMPROVEMENTS.md#active-improvements)<br>[Proposed Improvements (Backlog)](docs/DESIGN_IMPROVEMENTS.md#proposed-improvements-backlog)<br>[Design Decisions Log](docs/DESIGN_IMPROVEMENTS.md#design-decisions-log)                                                                                                                                                                                 |
 
-- **Practice session planning** - select and export training materials
-- **Smart folder navigation** - hierarchy-based prioritization
-- **Coaching term filtering** - Finnish/English keywords get priority
-- **Real-time search** with instant file filtering
-- **Mobile-optimized** interface for field use
-- **Hawks Helsinki branding** and Finnish localization
+## Architecture At A Glance
 
-### 🔒 Enterprise Security
+- **Core architecture:** Hawks Coach Hub currently ships as a read-only Google Drive browser for Hawks Helsinki coaching staff plus additive planner/editor routes for structured drills, sessions, sharing, and import review.
+- **Non-functional requirements:** These NFRs now distinguish between:
+- **Metrics and targets:** The `PerformanceMonitor` utility (`src/utils/performance-monitor.ts`) logs timings in development for browse-mode work:
 
-- **Service account authentication** - no OAuth complexity
-- **Environment-based credentials** - secrets never in code
-- **Enhanced .gitignore** - comprehensive credential leak prevention
-- **Read-only Google Drive access**
-- **Secure serverless deployment** on Vercel
-- **Automated security scanning** with GitHub Actions
-- **TypeScript strict mode** - compile-time safety
+## Development Quick Start
 
-## 🏗️ Architecture
+- `npm install`
+- `npm run dev`
+- `bash scripts/check-dev.sh`
 
-```
-Frontend (TypeScript + Vite)
-    ↓
-API Middleware (Vercel Serverless)
-    ↓
-Google Drive API (Service Account)
-    ↓
-Hawks Training Materials Folder
-```
+Additional scripts from `package.json`:
 
-## 📁 Current File Structure
+- `npm run dev`
+- `npm run build`
+- `npm run typecheck`
+- `npm run lint`
+- `npm run test:run`
+- `npm run test:e2e`
 
-```
-hawks-coach-hub/
-├── index.html                     # Main HTML entry point
-├── styles-minimal.css             # Optimized Hawks-themed CSS
-├── package.json                   # Modern build toolchain
-├── vite.config.ts                 # Vite build configuration
-├── tsconfig.json                  # TypeScript configuration
-├── vercel.json                    # Deployment configuration
-│
-├── api/
-│   └── drive.js                   # Serverless function (Node.js)
-│
-├── src/
-│   ├── main-service-account.ts    # Main application logic
-│   ├── services/
-│   │   └── drive-service-account.ts # API client
-│   ├── components/
-│   │   ├── file-display.ts        # File rendering
-│   │   └── toast.ts               # User notifications
-│   ├── types/
-│   │   └── google-apis.ts         # TypeScript definitions
-│   └── utils/
-│       ├── dom.ts                 # DOM utilities
-│       ├── search.ts              # Search functionality
-│       └── config.ts              # Configuration
-│
-├── vite-api-proxy.js              # Development server proxy
-├── vite-api-proxy.d.ts            # TypeScript declarations
-├── PERFORMANCE.md                 # Performance documentation
-├── DEVELOPMENT-GUIDE.md           # Comprehensive development guide
-├── GITHUB-ACTIONS-SETUP.md        # CI/CD setup instructions
-├── .github/workflows/             # GitHub Actions CI/CD
-│   ├── ci.yml                     # Test and build pipeline
-│   ├── security.yml               # Security scanning
-│   └── release.yml                # Automated releases
-└── .env.example                   # Environment template
-```
+## Testing and Quality
 
-## 🚀 Quick Start
+Focus on **critical path coverage** over 100% coverage. The app is a file browser — correctness of search, file rendering, and API integration matters most.
 
-### Prerequisites
+## Product and UX Principles
 
-- Node.js 18+ and npm
-- Google Cloud Project with Drive API enabled
-- Service account with Drive access
+- **Personas:** Age: 42 / Role: Head coach of Hawks Helsinki floorball team
+- **User journeys:** Hawks Coach Hub now has two documented experience surfaces:
 
-### 1. Clone and Install
+## Source Documents
 
-```bash
-git clone https://github.com/mikkomakipaa/hawks-coach-hub.git
-cd hawks-coach-hub
-npm install
-```
-
-### 2. Environment Setup
-
-```bash
-cp .env.example .env
-```
-
-Edit `.env`:
-
-```bash
-# Google Service Account (JSON key content or file path)
-GOOGLE_SERVICE_ACCOUNT_KEY="{\"type\":\"service_account\",...}"
-# OR
-GOOGLE_SERVICE_ACCOUNT_KEY_FILE="./path/to/key.json"
-
-# Hawks folder ID (default provided)
-HAWKS_FOLDER_ID="1ZF6AHx62MXfkgs7-xbrMxj4r9sdyKzUb"
-```
-
-### 3. Development
-
-```bash
-npm run dev
-```
-
-Visit `http://localhost:8000`
-
-### 4. Production Deployment
-
-```bash
-npm run build
-vercel deploy
-```
-
-## 🔧 Google Cloud Setup
-
-### 1. Create Service Account
-
-```bash
-# Enable Drive API
-gcloud services enable drive.googleapis.com
-
-# Create service account
-gcloud iam service-accounts create hawks-drive-reader \
-    --display-name="Hawks Drive Reader"
-
-# Create and download key
-gcloud iam service-accounts keys create coach-hub-key.json \
-    --iam-account=hawks-drive-reader@PROJECT_ID.iam.gserviceaccount.com
-```
-
-### 2. Share Google Drive Folder
-
-1. Open [Hawks Training Materials Folder](https://drive.google.com/drive/folders/1ZF6AHx62MXfkgs7-xbrMxj4r9sdyKzUb)
-2. Click "Share" → "Add people and groups"
-3. Add service account email: `hawks-drive-reader@PROJECT_ID.iam.gserviceaccount.com`
-4. Set permission to "Viewer"
-
-## 📊 Performance Metrics
-
-### Before Optimization
-
-- **Load time**: 30+ seconds
-- **User feedback**: None during loading
-- **API calls**: 100+ sequential requests
-- **Cache**: No caching system
-
-### After Optimization
-
-- **Load time**: ~5 seconds (83% improvement)
-- **User feedback**: Visual loading indicators with progress
-- **API calls**: 60 parallel batch requests
-- **Cache**: 5-minute intelligent caching (90%+ hit rate)
-- **Subsequent loads**: <200ms (cached)
-
-## 🛠️ Development Scripts
-
-```bash
-# Development
-npm run dev          # Start development server with hot reload
-npm run build        # Build for production with optimizations
-npm run preview      # Preview production build locally
-
-# Code Quality
-npm run typecheck    # TypeScript strict mode checking
-npm run lint         # ESLint with TypeScript support
-npm run lint:fix     # Auto-fix ESLint issues
-npm run format       # Format code with Prettier
-npm run format:check # Check code formatting
-
-# Testing
-npm run test         # Run unit tests with Vitest
-npm run test:run     # Run tests once (CI mode)
-npm run test:coverage # Generate coverage report
-npm run test:ui      # Visual test interface
-
-# Git Workflow
-npm run commit       # Conventional commit with Commitizen
-```
-
-## 🔒 Security & Privacy
-
-- **Service account**: Eliminates OAuth complexity and security risks
-- **Read-only access**: Cannot modify Google Drive content
-- **No data storage**: All data served directly from Google Drive
-- **Environment secrets**: Credentials managed via environment variables
-- **Enhanced .gitignore**: Comprehensive patterns prevent credential leaks
-- **Automated security scanning**: CodeQL analysis and dependency audits
-- **TypeScript strict mode**: Compile-time type safety and null checks
-- **CORS protection**: API restricted to authorized domains
-- **No user tracking**: Privacy-focused design
-- **Weekly security updates**: Automated dependency vulnerability scanning
-
-## 📱 Browser Support
-
-- Chrome/Edge 88+
-- Firefox 85+
-- Safari 14+
-- Mobile browsers (iOS Safari, Chrome Mobile)
-
-## 🤝 Contributing
-
-### Development Workflow
-
-1. **Setup**: Follow the comprehensive [Development Guide](./DEVELOPMENT-GUIDE.md)
-2. **Code Standards**: TypeScript strict mode, ESLint + Prettier
-3. **Git Workflow**: Conventional commits with Commitizen (`npm run commit`)
-4. **Testing**: Add unit tests for new functionality with Vitest
-5. **CI/CD**: All PRs must pass automated tests and security scans
-
-### Quality Gates
-
-- ✅ TypeScript compilation with zero errors
-- ✅ ESLint rules pass with zero warnings
-- ✅ Unit tests pass with adequate coverage
-- ✅ Security scans pass (CodeQL, dependency audit)
-- ✅ Performance benchmarks maintained
-
-See [GitHub Actions Setup](./GITHUB-ACTIONS-SETUP.md) for CI/CD configuration.
-
-## 📄 License
-
-MIT License - Customized for Hawks Helsinki coaching operations.
-
-## 🏒 About Hawks Helsinki
-
-Hawks Helsinki is a floorball club focused on providing quality sports experiences. This Coach Hub supports our coaching staff with fast, reliable access to training resources and tactical materials.
-
----
-
-**Performance-optimized for coaching excellence** ⚡
+- [Core Architecture Decisions](docs/CORE_ARCHITECTURE.md)
+- [Component Reference](docs/COMPONENTS.md)
+- [Data Model](docs/DATA_MODEL.md)
+- [Design System](docs/DESIGN_SYSTEM.md)
+- [Metrics & Performance Targets](docs/METRICS.md)
+- [Non-Functional Requirements (NFR)](docs/NFR.md)
+- [User Personas](docs/PERSONAS.md)
+- [Testing Strategy](docs/TESTING_STRATEGY.md)
+- [User Journey Maps](docs/USER_JOURNEYS.md)
+- [Wireframes & Screen Layouts](docs/WIREFRAMES.md)
+- [Component Library](docs/COMPONENT_LIBRARY.md)
+- [Design Improvement Log](docs/DESIGN_IMPROVEMENTS.md)
