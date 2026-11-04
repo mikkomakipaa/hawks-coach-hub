@@ -1,6 +1,10 @@
 /**
  * Serverless function for Google Drive API with Service Account
- * Deploy to Vercel Functions or similar
+ * Deploy to Vercel Functions or similar.
+ *
+ * This route is intentionally isolated from planner/editor write flows.
+ * It must remain a read-only anonymous browse surface backed only by
+ * drive.readonly scope and must not be extended with structured-data writes.
  */
 
 const { google } = require('googleapis');
@@ -10,15 +14,33 @@ const path = require('path');
 // Service account credentials (use environment variables in production)
 let CREDENTIALS = null;
 
+console.log('🔍 Environment check:');
+console.log('  GOOGLE_SERVICE_ACCOUNT_KEY:', process.env.GOOGLE_SERVICE_ACCOUNT_KEY ? 'SET' : 'NOT SET');
+console.log('  GOOGLE_SERVICE_ACCOUNT_KEY_FILE:', process.env.GOOGLE_SERVICE_ACCOUNT_KEY_FILE);
+
 if (process.env.GOOGLE_SERVICE_ACCOUNT_KEY) {
   // Production: Use environment variable
-  CREDENTIALS = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY);
+  try {
+    CREDENTIALS = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY);
+    console.log('🔑 Loaded service account from environment variable');
+  } catch (error) {
+    console.error('❌ Failed to parse service account from environment:', error.message);
+  }
 } else if (process.env.GOOGLE_SERVICE_ACCOUNT_KEY_FILE) {
   // Development: Use local file
   const keyPath = path.resolve(process.env.GOOGLE_SERVICE_ACCOUNT_KEY_FILE);
+  console.log('🔍 Checking file path:', keyPath);
+  console.log('🔍 File exists:', fs.existsSync(keyPath));
+
   if (fs.existsSync(keyPath)) {
-    CREDENTIALS = JSON.parse(fs.readFileSync(keyPath, 'utf8'));
-    console.log('🔑 Loaded service account from file:', keyPath);
+    try {
+      CREDENTIALS = JSON.parse(fs.readFileSync(keyPath, 'utf8'));
+      console.log('🔑 Loaded service account from file:', keyPath);
+    } catch (error) {
+      console.error('❌ Failed to read service account file:', error.message);
+    }
+  } else {
+    console.error('❌ Service account file not found at:', keyPath);
   }
 } else {
   // Try default local paths (for development)

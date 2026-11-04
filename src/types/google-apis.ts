@@ -59,7 +59,7 @@ export type ToastType = 'success' | 'error' | 'warning' | 'info';
 
 // GAPI types (basic)
 interface Gapi {
-  // eslint-disable-next-line no-unused-vars
+   
   load: (
     // eslint-disable-next-line no-unused-vars
     api: string,

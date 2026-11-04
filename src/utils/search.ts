@@ -1,20 +1,39 @@
 /**
- * Search and filtering utilities
+ * Search and filtering utilities - Legacy support + Enhanced integration
  */
 
 import type { DriveFile, DriveFolder } from '@/types/google-apis';
+import { enhancedSearch, type SearchResult } from './enhanced-search';
 
 export class SearchService {
   /**
-   * Filter files by search term
+   * Enhanced search with fallback to basic search
    */
   filterFilesBySearch(files: DriveFile[], searchTerm: string): DriveFile[] {
     if (!searchTerm.trim()) {
       return files;
     }
 
+    // Try enhanced search first
+    try {
+      const results = enhancedSearch.search(searchTerm);
+      if (results.length > 0) {
+        return results as DriveFile[];
+      }
+    } catch (error) {
+      console.warn('Enhanced search failed, using fallback:', error);
+    }
+
+    // Fallback to basic search
     const term = searchTerm.toLowerCase().trim();
     return files.filter(file => file.name.toLowerCase().includes(term));
+  }
+
+  /**
+   * Enhanced search with ranking and metadata
+   */
+  searchWithRanking(searchTerm: string): SearchResult[] {
+    return enhancedSearch.search(searchTerm);
   }
 
   /**

@@ -1,752 +1,635 @@
 /**
  * Hawks Coach Hub - Service Account Version (No Authentication Required)
- * Modern TypeScript implementation with backend API calls
+ * Modern TypeScript implementation with modular architecture
  */
 
 /* eslint-disable no-console */
 
-import type {
-  DriveFile,
-  DriveFolder,
-  StatusType,
-} from '@/types/google-apis';
-import { getDOMElement } from '@/utils/dom';
-import { AUTO_REFRESH_INTERVAL } from '@/utils/config';
 import { initializeToastContainer, showToast } from '@/components/toast';
 import { ServiceAccountDriveService } from '@/services/drive-service-account';
-import { FileDisplayService } from '@/components/file-display';
-import { SearchService } from '@/utils/search';
-import { createElement } from '@/utils/dom';
+// import { SearchService } from '@/utils/search'; // Removed - using tab search service instead
+import { AUTO_REFRESH_INTERVAL } from '@/utils/config';
+import { domCache } from '@/utils/dom-cache';
+import { appState } from '@/state/app-state';
+import { enhancedSearch } from '@/utils/enhanced-search';
+import { fileActions } from '@/actions/file-actions';
+import { FileListManager } from '@/ui/file-list-manager';
+import { FolderNavigationManager } from '@/ui/folder-navigation';
+import { performanceMonitor } from '@/utils/performance-monitor';
+import { StaticContentDisplay } from '@/components/static-content-display';
+import { tabSearchService } from '@/services/tab-search-service';
+import { parseHashRoute, getTopLevelShell } from '@/ui/routes';
+import { renderTopLevelNavigation, renderViewShell } from '@/ui/view-shells';
+import { DrillCatalogView } from '@/ui/drill-catalog-view';
+import { DrillDetailView } from '@/ui/drill-detail-view';
+import { PlannerDraftView } from '@/ui/planner-draft-view';
+import { PlannerSessionListView } from '@/ui/planner-session-list-view';
+import { SharedSessionView } from '@/ui/shared-session-view';
+import { EditorDrillView } from '@/ui/editor-drill-view';
+import { EditorImportReviewView } from '@/ui/editor-import-review-view';
 
-// Simplified Application State (no auth needed)
-interface AppState {
-  allFiles: DriveFile[];
-  filteredFiles: DriveFile[];
-  allFolders: DriveFolder[];
-  folderCache: Map<string, DriveFolder>;
-  currentFolderFilter: string | null;
-  // Pagination
-  currentPage: number;
-  itemsPerPage: number;
-  totalPages: number;
-}
-
-const state: AppState = {
-  allFiles: [],
-  filteredFiles: [],
-  allFolders: [],
-  folderCache: new Map(),
-  currentFolderFilter: null,
-  currentPage: 1,
-  itemsPerPage: 50,
-  totalPages: 0,
-};
+// Application managers
+let fileListManager: FileListManager;
+let folderNavigationManager: FolderNavigationManager;
+const cleanup: Array<() => void> = [];
+let browseModeInitialized = false;
+let routeHandlingInitialized = false;
+let destroyActiveRouteView: (() => void) | null = null;
 
 // Services
 const driveService = new ServiceAccountDriveService();
-const fileDisplayService = new FileDisplayService();
-const searchService = new SearchService();
 
-// Session Planning State
-const sessionPlanningState = {
-  isActive: false,
-  selectedFiles: new Set<string>(),
-  sessionName: '',
-};
+// Track current active tab for search filtering
+let currentActiveTab = 'handbook';
 
-// Global FileActions for action buttons
-declare global {
-  interface Window {
-    FileActions: {
-      addToSession: (fileId: string) => void;
-      togglePlanningMode: () => void;
-      exportSession: () => void;
-      removeFromSession: (fileId: string) => void;
-    };
-  }
-}
+// Note: DOM elements now accessed via domCache for better performance
 
-window.FileActions = {
-  addToSession: (fileId: string) => {
-    if (sessionPlanningState.isActive) {
-      sessionPlanningState.selectedFiles.add(fileId);
-      updateSessionDisplay();
-      showToast(
-        'Tiedosto lisätty',
-        'Materiaali lisätty harjoitussuunnitelmaan',
-        'success',
-        2000
-      );
-    } else {
-      // Auto-enable planning mode and add file
-      sessionPlanningState.isActive = true;
-      sessionPlanningState.selectedFiles.add(fileId);
-      updatePlanningModeUI();
-      updateSessionDisplay();
-      showToast(
-        'Harjoitussuunnittelu aloitettu',
-        'Ensimmäinen materiaali lisätty',
-        'info',
-        3000
-      );
-    }
-  },
-
-
-  togglePlanningMode: () => {
-    sessionPlanningState.isActive = !sessionPlanningState.isActive;
-    if (!sessionPlanningState.isActive) {
-      sessionPlanningState.selectedFiles.clear();
-    }
-    updatePlanningModeUI();
-    updateSessionDisplay();
-  },
-
-  exportSession: () => {
-    if (sessionPlanningState.selectedFiles.size === 0) {
-      showToast(
-        'Ei materiaaleja',
-        'Lisää ensin materiaaleja harjoitukseen',
-        'warning',
-        3000
-      );
-      return;
-    }
-
-    const selectedFilesList = Array.from(sessionPlanningState.selectedFiles)
-      .map(fileId => state.allFiles.find(f => f.id === fileId))
-      .filter(Boolean)
-      .map(file => `• ${file!.name}\n  🔗 ${file!.webViewLink}`)
-      .join('\n\n');
-
-    const sessionData = `HAWKS HARJOITUSSUUNNITELMA
-Luotu: ${new Date().toLocaleDateString('fi-FI')}
-
-MATERIAALIT (${sessionPlanningState.selectedFiles.size} kpl):
-${selectedFilesList}
-
-----
-Luotu Hawks Valmennuskeskuksessa
-📁 Kaikki materiaalit: https://drive.google.com/drive/folders/1ZF6AHx62MXfkgs7-xbrMxj4r9sdyKzUb`;
-
-    navigator.clipboard
-      .writeText(sessionData)
-      .then(() => {
-        showToast(
-          'Suunnitelma kopioitu',
-          'Harjoitussuunnitelma kopioitu leikepöydälle',
-          'success',
-          3000
-        );
-      })
-      .catch(() => {
-        showToast(
-          'Virhe',
-          'Harjoitussuunnitelma kopioitu leikepöydälle',
-          'error',
-          3000
-        );
-      });
-  },
-
-  removeFromSession: (fileId: string) => {
-    sessionPlanningState.selectedFiles.delete(fileId);
-    updateSessionDisplay();
-    showToast(
-      'Materiaali poistettu',
-      'Materiaali poistettu harjoitussuunnitelmasta',
-      'info',
-      2000
-    );
-  },
-};
-
-// DOM Elements
-const searchInput = getDOMElement('searchInput') as HTMLInputElement;
-const refreshButton = getDOMElement('refreshButton') as HTMLButtonElement;
-const filesList = getDOMElement('allFilesList') as HTMLDivElement;
-
-/**
- * Update status display
- */
-function updateStatus(message: string, type: StatusType = 'info'): void {
-  console.log(`Status: ${message} (${type})`);
-  
-  const loadingStatus = document.getElementById('loadingStatus');
-  const loadingText = loadingStatus?.querySelector('.loading-text');
-  
-  if (loadingStatus && loadingText) {
-    if (type === 'loading') {
-      loadingText.textContent = message;
-      loadingStatus.style.display = 'flex';
-      console.log('✅ Loading indicator SHOWN:', message);
-    } else {
-      loadingStatus.style.display = 'none';
-      console.log('✅ Loading indicator HIDDEN');
-    }
-  } else {
-    console.log('❌ Loading status element not found');
-  }
-}
-
-/**
- * Show/hide loading skeleton
- */
-function showSkeletonLoading(): void {
-  const container = filesList;
-  container.innerHTML = `
-    <div class="skeleton-loading">
-      <div class="skeleton-item"></div>
-      <div class="skeleton-item"></div>
-      <div class="skeleton-item"></div>
-    </div>
-  `;
-}
-
-function hideSkeletonLoading(): void {
-  const skeletonElements = document.querySelectorAll('.skeleton-loading');
-  skeletonElements.forEach(el => el.remove());
-}
+// Status and loading functions now handled by FileListManager
 
 /**
  * Load files and folders from service account backend
  */
 const loadDriveFiles = async (refresh: boolean = false): Promise<void> => {
-  updateStatus('Yhdistetään Google Drive APIin...', 'loading');
-  showSkeletonLoading();
+  await performanceMonitor.measure('data-loading', 'load-drive-files', async () => {
+    fileListManager.updateStatus('Yhdistetään Google Drive APIin...', 'loading');
+    fileListManager.showSkeletonLoading();
 
-  try {
-    const startTime = performance.now();
-    
-    // Show progress updates
-    updateStatus('Ladataan harjoitusmateriaaleja...', 'loading');
-    
-    // Add timeout to show that something is happening
-    const progressInterval = setInterval(() => {
-      const elapsed = Math.round((performance.now() - startTime) / 1000);
-      if (elapsed > 5) {
-        updateStatus(`Ladataan... ${elapsed}s (haetaan ${state.allFiles.length || 104} tiedostoa)`, 'loading');
+    try {
+      const startTime = performance.now();
+      
+      // Show progress updates
+      fileListManager.updateStatus('Ladataan harjoitusmateriaaleja...', 'loading');
+      
+      // Load both files and folders in one API call
+      const data = await driveService.loadAllFilesAndFolders(refresh);
+      
+      const loadTime = performance.now() - startTime;
+      console.log(`⚡ Loaded ${data.files.length} files, ${data.folders.length} folders in ${Math.round(loadTime)}ms ${data.cached ? '(cached)' : '(from Google Drive)'}`);
+
+      // Update state
+      appState.setFiles(data.files);
+      appState.setFolders(data.folders);
+
+      // Cache folder structure immediately for better UX
+      appState.updateFolderCache();
+
+      // Initialize enhanced search with loaded files
+      enhancedSearch.indexFiles(data.files);
+      console.log('🔍 Enhanced search indexed', data.files.length, 'files');
+
+      // Initialize tab search service with loaded data
+      tabSearchService.initialize(data.files, data.folders);
+      console.log('🏷️ Tab search service initialized for folder-based filtering');
+
+      // Debug: Print folder analysis for configuration
+      if (process.env.NODE_ENV === 'development') {
+        const { printFolderAnalysis } = await import('@/utils/folder-detection');
+        printFolderAnalysis(data.folders);
       }
-    }, 2000);
-    
-    // Load both files and folders in one API call
-    const data = await driveService.loadAllFilesAndFolders(refresh);
-    
-    clearInterval(progressInterval);
-    
-    const loadTime = performance.now() - startTime;
-    console.log(`⚡ Loaded ${data.files.length} files, ${data.folders.length} folders in ${Math.round(loadTime)}ms ${data.cached ? '(cached)' : '(from Google Drive)'}`);
 
-    // Update state
-    state.allFiles = data.files;
-    state.allFolders = data.folders;
-    state.filteredFiles = [...data.files];
+      fileListManager.hideSkeletonLoading();
+      fileListManager.updateStatus('', 'info'); // Hide loading status
+      fileListManager.refresh();
+      folderNavigationManager.refresh();
 
-    // Cache folder structure immediately for better UX
-    cacheFolderStructure();
-
-    // Remove debug logging to improve performance
-
-    hideSkeletonLoading();
-    updateStatus('', 'info'); // Hide loading status
-    displayFiles();
-    displayFolderChips();
-    updateFileCount();
-    updateSessionDisplay();
-
-    // Direct DOM update as fallback to ensure counts and chips are updated
-    setTimeout(() => {
-      console.log('🔧 Direct DOM update fallback - checking elements');
-      
-      // Check and fix the status bar counts
-      const totalFilesSpan = document.getElementById('totalFiles');
-      const totalFoldersSpan = document.getElementById('totalFolders');
-      const currentViewSpan = document.getElementById('currentViewCount');
-      
-      console.log('🔍 DOM elements found:', {
-        totalFiles: !!totalFilesSpan,
-        totalFolders: !!totalFoldersSpan, 
-        currentView: !!currentViewSpan
-      });
-      
-      if (totalFilesSpan) {
-        totalFilesSpan.textContent = state.allFiles.length.toString();
-        console.log(`✅ Set totalFiles to: ${state.allFiles.length}`);
+      if (data.files.length === 0 && data.folders.length === 0) {
+        fileListManager.updateStatus('No training materials found', 'info');
+        showToast(
+          'No Content Found',
+          'No training resources found in the Hawks folder',
+          'info'
+        );
+      } else {
+        fileListManager.updateStatus(
+          `Successfully loaded ${data.files.length} files and ${data.folders.length} folders`,
+          'success'
+        );
+        showToast(
+          'Hawks Training Materials Loaded',
+          `Found ${data.files.length} files and ${data.folders.length} folders`,
+          'success'
+        );
       }
-      if (totalFoldersSpan) {
-        totalFoldersSpan.textContent = state.allFolders.length.toString();
-        console.log(`✅ Set totalFolders to: ${state.allFolders.length}`);
-      }
-      if (currentViewSpan) {
-        currentViewSpan.textContent = state.filteredFiles.length.toString();
-        console.log(`✅ Set currentView to: ${state.filteredFiles.length}`);
-      }
+    } catch (error) {
+      console.error('Error loading files:', error);
+      fileListManager.hideSkeletonLoading();
       
-      // Also try to force the updateFileCount function
-      updateFileCount();
-      
-      console.log(`🔧 Direct update completed: ${state.allFiles.length} files, ${state.allFolders.length} folders`);
-    }, 1000);
-
-    if (data.files.length === 0 && data.folders.length === 0) {
-      updateStatus('No training materials found', 'info');
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      fileListManager.updateStatus(`Error loading files: ${errorMessage}`, 'error');
       showToast(
-        'No Content Found',
-        'No training resources found in the Hawks folder',
-        'info'
-      );
-    } else {
-      updateStatus(
-        `Successfully loaded ${data.files.length} files and ${data.folders.length} folders`,
-        'success'
-      );
-      showToast(
-        'Hawks Training Materials Loaded',
-        `Found ${data.files.length} files and ${data.folders.length} folders`,
-        'success'
+        'Loading Error',
+        'Failed to load training materials. Please try refreshing the page.',
+        'error'
       );
     }
-  } catch (error) {
-    console.error('Error loading files:', error);
-    hideSkeletonLoading();
+  });
+};
+
+// Folder caching now handled by AppStateManager
+
+// File display now handled by FileListManager
+
+// Folder chips display now handled by FolderNavigationManager
+
+// Folder filtering now handled by FolderNavigationManager
+
+/**
+ * Handle search functionality with tab-based filtering
+ */
+async function handleSearch(): Promise<void> {
+  const searchInput = domCache.get('searchInput') as HTMLInputElement;
+  if (!searchInput) return;
+
+  const query = searchInput.value.trim();
+
+  if (!query) {
+    // Reset to show all files for current tab when search is cleared
+    resetToTabDefaults();
+    return;
+  }
+
+  // Use tab-based search for targeted results
+  const searchResult = await tabSearchService.searchInTab({
+    tabId: currentActiveTab,
+    query,
+    includeFolders: false,
+    includeStaticContent: true,
+    maxResults: 100
+  });
+
+  // Update the app state with filtered results
+  appState.setFilteredFiles(searchResult.files);
+
+  // Display search results with tab context
+  const tabName = getTabDisplayName(currentActiveTab);
+  fileListManager.displaySearchResults(`${query} (in ${tabName})`, searchResult.totalResults);
+
+  // Log search stats for debugging
+  console.log(`🔍 Tab search "${query}" in ${currentActiveTab}:`, {
+    files: searchResult.files.length,
+    totalResults: searchResult.totalResults,
+    scope: searchResult.searchScope,
+    filters: searchResult.appliedFilters
+  });
+}
+
+/**
+ * Reset view to tab defaults (no search, no folder filter)
+ */
+async function resetToTabDefaults(): Promise<void> {
+  if (currentActiveTab === 'handbook') {
+    // For handbook, show all files
+    folderNavigationManager.filterByFolder(appState.currentFolderFilter);
+  } else {
+    // For other tabs, show only files from relevant folders
+    const searchResult = await tabSearchService.searchInTab({
+      tabId: currentActiveTab,
+      query: '', // Empty query shows all files in scope
+      includeFolders: false,
+      includeStaticContent: false,
+      maxResults: 1000
+    });
+
+    appState.setFilteredFiles(searchResult.files);
+    fileListManager.refresh();
+  }
+}
+
+/**
+ * Get display name for tab
+ */
+function getTabDisplayName(tabId: string): string {
+  const tabNames: Record<string, string> = {
+    'handbook': 'Valmentajan käsikirja',
+    'sport-training': 'Lajiharjoittelu',
+    'fitness': 'Fysiikkaharjoittelu',
+    'game-situations': 'Pelitilanneroolit'
+  };
+  return tabNames[tabId] || tabId;
+}
+
+// File count and pagination now handled by FileListManager
+
+// Session planning UI now handled by FileListManager
+
+/**
+ * Initialize event listeners with proper cleanup tracking
+ */
+function initializeEventListeners(): void {
+  const searchInput = domCache.get('searchInput');
+  const refreshButton = domCache.get('refreshButton');
+  
+  if (searchInput) {
+    const searchHandler = () => handleSearch();
+    searchInput.addEventListener('input', searchHandler);
+    cleanup.push(() => searchInput.removeEventListener('input', searchHandler));
+  }
+  
+  if (refreshButton) {
+    const refreshHandler = () => loadDriveFiles(true);
+    refreshButton.addEventListener('click', refreshHandler);
+    cleanup.push(() => refreshButton.removeEventListener('click', refreshHandler));
+  }
+
+  // Auto-refresh (optional) with cleanup
+  if (AUTO_REFRESH_INTERVAL > 0) {
+    const intervalId = setInterval(loadDriveFiles, AUTO_REFRESH_INTERVAL);
+    cleanup.push(() => clearInterval(intervalId));
+  }
+
+  console.log('Event listeners initialized with cleanup tracking');
+}
+
+/**
+ * Initialize the application with new modular architecture
+ */
+async function initializeBrowseApp(): Promise<void> {
+  if (browseModeInitialized) {
+    return;
+  }
+
+  console.log('🏒 Hawks Coach Hub - Service Account Version initializing...');
+  
+  try {
+    // Initialize infrastructure
+    initializeToastContainer();
+    domCache.initialize();
     
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    updateStatus(`Error loading files: ${errorMessage}`, 'error');
+    // Initialize managers
+    fileListManager = new FileListManager();
+    folderNavigationManager = new FolderNavigationManager();
+    
+    // Initialize file actions (already done via import, but ensure it's set up)
+    // fileActions is already initialized as a singleton
+    
+    // Initialize event listeners
+    initializeEventListeners();
+
+    // Add content tabs for Phase 2
+    addContentTabs();
+
+    // Remove auth-related UI elements
+    const authElements = document.querySelectorAll('#authorize_div, #signout_div');
+    authElements.forEach(el => {
+      if (el instanceof HTMLElement) {
+        el.style.display = 'none';
+      }
+    });
+    
+    // Load files immediately (no auth required)
+    await loadDriveFiles();
+    
+    // Set up cleanup on page unload
+    const unloadHandler = () => {
+      cleanup.forEach(cleanupFn => {
+        try {
+          cleanupFn();
+        } catch (error) {
+          console.warn('Error during cleanup:', error);
+        }
+      });
+      
+      fileListManager?.destroy();
+      folderNavigationManager?.destroy();
+      fileActions?.destroy();
+      performanceMonitor?.destroy();
+    };
+    
+    window.addEventListener('beforeunload', unloadHandler);
+    cleanup.push(() => window.removeEventListener('beforeunload', unloadHandler));
+
+    browseModeInitialized = true;
+    
+    console.log('✅ Hawks Coach Hub initialized successfully with modular architecture');
+    
+    // Log performance stats in development
+    if (process.env.NODE_ENV === 'development') {
+      setTimeout(() => {
+        console.log('📊 Performance stats:', performanceMonitor.getAllStats());
+        console.log('🗂️ App state stats:', appState.getStateStats());
+        console.log('🔧 DOM cache stats:', domCache.getStats());
+      }, 2000);
+    }
+    
+  } catch (error) {
+    console.error('❌ Failed to initialize Hawks Coach Hub:', error);
     showToast(
-      'Loading Error',
-      'Failed to load training materials. Please try refreshing the page.',
+      'Initialization Error',
+      'Failed to initialize the application. Please refresh the page.',
       'error'
     );
   }
-};
-
-/**
- * Calculate hierarchy level for a folder (0 = top level under Hawks root)
- */
-function calculateFolderLevel(folderId: string, allFolders: DriveFolder[]): number {
-  const HAWKS_FOLDER_ID = '1ZF6AHx62MXfkgs7-xbrMxj4r9sdyKzUb';
-  
-  if (folderId === HAWKS_FOLDER_ID) return -1; // Root folder itself
-  
-  const folder = allFolders.find(f => f.id === folderId);
-  if (!folder || !folder.parents || folder.parents.length === 0) return 999; // Unknown/orphaned
-  
-  const parentId = folder.parents[0];
-  if (!parentId) return 999; // No parent ID
-  if (parentId === HAWKS_FOLDER_ID) return 0; // Direct child of Hawks root
-  
-  // Recursively calculate parent level + 1
-  return calculateFolderLevel(parentId, allFolders) + 1;
 }
 
-/**
- * Cache folder structure for quick lookups
- */
-function cacheFolderStructure(): void {
-  console.log('🗂️ Caching folder structure:', state.allFolders.length, 'folders,', state.allFiles.length, 'files');
-  state.folderCache.clear();
-  
-  let foldersWithFiles = 0;
-  state.allFolders.forEach((folder) => {
-    // Simple file counting: files that have this folder as parent  
-    const directFiles = state.allFiles.filter(file => 
-      file.parents && file.parents.includes(folder.id)
-    );
-    
-    // Calculate hierarchy level
-    const hierarchyLevel = calculateFolderLevel(folder.id, state.allFolders);
-    
-    // Create extended folder object with file count and hierarchy level
-    const extendedFolder = {
-      ...folder,
-      fileCount: directFiles.length,
-      hierarchyLevel: hierarchyLevel
-    };
-    
-    state.folderCache.set(folder.id, extendedFolder);
-    
-    if (directFiles.length > 0) {
-      foldersWithFiles++;
-    }
-  });
-
-  console.log(`✅ Cached ${state.allFolders.length} folders, ${foldersWithFiles} have files`);
-}
-
-/**
- * Display files in the UI
- */
-function displayFiles(): void {
-  filesList.innerHTML = '';
-
-  if (state.filteredFiles.length === 0) {
-    const isSearching = searchInput.value.trim() !== '';
-    const emptyState = fileDisplayService.createEmptyState(
-      isSearching,
-      state.allFiles.length > 0
-    );
-    filesList.appendChild(emptyState);
-    updatePagination();
-    return;
-  }
-
-  // Get current page items
-  const startIndex = (state.currentPage - 1) * state.itemsPerPage;
-  const endIndex = startIndex + state.itemsPerPage;
-  const pageItems = state.filteredFiles.slice(startIndex, endIndex);
-
-  pageItems.forEach(file => {
-    const fileItem = fileDisplayService.createFileItem(file);
-    filesList.appendChild(fileItem);
-  });
-
-  updatePagination();
-}
-
-/**
- * Display folder chips
- */
-function displayFolderChips(): void {
-  const folderChipsBar = document.getElementById('folderChipsBar');
-  const folderChips = document.getElementById('folderChips');
-  
-  if (!folderChipsBar || !folderChips) return;
-
-  if (state.allFolders.length === 0) {
-    folderChipsBar.style.display = 'none';
-    return;
-  }
-
-  folderChipsBar.style.display = 'block';
-  
-  // Clear existing chips
-  folderChips.innerHTML = '';
-  
-  // Create "All Files" chip
-  const allFilesChip = document.createElement('button');
-  allFilesChip.className = `folder-chip ${state.currentFolderFilter === null ? 'active' : ''}`;
-  allFilesChip.setAttribute('data-folder-id', '');
-  allFilesChip.innerHTML = `
-    <span class="folder-chip-icon">📁</span>
-    <span>Kaikki tiedostot</span>
-    <span class="folder-chip-count">${state.allFiles.length}</span>
-  `;
-  allFilesChip.onclick = () => filterByFolder(null);
-  folderChips.appendChild(allFilesChip);
-  
-  // Create real folder chips from cached folders
-  
-  // Get folders with files and prioritize meaningful folder names for coaches
-  const allFoldersWithFiles = Array.from(state.folderCache.values())
-    .filter(folder => folder.fileCount && folder.fileCount > 0);
-  
-  // Prioritize folders with coaching-related terms (Finnish and English)
-  const priorityTerms = [
-    'harjoitus', 'practice', 'drill', 'exercise', 'treeni', 
-    'suunnittelu', 'planning', 'plan', 'opetus', 'teaching',
-    'taito', 'skill', 'tekniikka', 'technique', 'taktii', 'tactic'
-  ];
-  
-  const prioritizedFolders = allFoldersWithFiles.sort((a, b) => {
-    // 1. First priority: hierarchy level (top-level folders first)
-    const aLevel = (a as any).hierarchyLevel || 999;
-    const bLevel = (b as any).hierarchyLevel || 999;
-    if (aLevel !== bLevel) {
-      return aLevel - bLevel; // Lower level = higher priority
-    }
-    
-    // 2. Second priority: Check if folder name contains coaching terms
-    const aHasPriority = priorityTerms.some(term => 
-      a.name.toLowerCase().includes(term.toLowerCase())
-    );
-    const bHasPriority = priorityTerms.some(term => 
-      b.name.toLowerCase().includes(term.toLowerCase())
-    );
-    
-    // If one has priority and other doesn't, prioritize the one with priority terms
-    if (aHasPriority && !bHasPriority) return -1;
-    if (!aHasPriority && bHasPriority) return 1;
-    
-    // 3. Third priority: sort by file count (more files = higher priority)
-    return (b.fileCount || 0) - (a.fileCount || 0);
-  });
-  
-  const foldersWithFiles = prioritizedFolders.slice(0, 8); // Show top 8 prioritized folders
-  
-  console.log(`🏒 Displaying ${foldersWithFiles.length} folder chips`);
-  
-  foldersWithFiles.forEach(folder => {
-    const chip = document.createElement('button');
-    chip.className = `folder-chip ${state.currentFolderFilter === folder.id ? 'active' : ''}`;
-    chip.setAttribute('data-folder-id', folder.id);
-    chip.innerHTML = `
-      <span class="folder-chip-icon">📂</span>
-      <span>${folder.name}</span>
-      <span class="folder-chip-count">${folder.fileCount}</span>
-    `;
-    chip.onclick = () => filterByFolder(folder.id);
-    folderChips.appendChild(chip);
-  });
-}
-
-/**
- * Filter files by folder
- */
-function filterByFolder(folderId: string | null): void {
-  state.currentFolderFilter = folderId;
-  state.currentPage = 1;
-
-  if (!folderId) {
-    // Show all files
-    state.filteredFiles = [...state.allFiles];
-    updateStatus(`Näytetään kaikki tiedostot (${state.allFiles.length} tiedostoa)`, 'info');
+// Handle page visibility changes for performance optimization
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') {
+    // Page became visible - resume normal operations
+    performanceMonitor.setEnabled(true);
   } else {
-    // Show files in specific folder and its subfolders
-    console.log(`🔍 Filtering by folder ${folderId}`);
-    console.log(`📊 Available: ${state.allFiles.length} files, ${state.allFolders.length} folders`);
-    
-    const filesInFolder = driveService.getFilesInFolder(folderId, state.allFiles, state.allFolders);
-    state.filteredFiles = filesInFolder;
-    
-    console.log(`📄 Found ${filesInFolder.length} files in folder`);
-    if (filesInFolder.length > 0) {
-      console.log(`📝 Sample files:`, filesInFolder.slice(0, 3).map(f => f.name));
+    // Page became hidden - reduce resource usage
+    performanceMonitor.setEnabled(false);
+  }
+});
+
+function ensureViewShellRoot(): HTMLElement {
+  let viewShellRoot = document.getElementById('viewShellRoot');
+
+  if (!viewShellRoot) {
+    const mainContainer = document.querySelector('.main-container');
+    const main = document.querySelector('main');
+
+    if (!mainContainer || !main) {
+      throw new Error('Unable to initialize routed view shell container');
     }
-    
-    const folder = state.folderCache.get(folderId);
-    const folderName = folder?.name || 'Unknown Folder';
-    console.log(`📁 Folder name: ${folderName}`);
-    
-    updateStatus(
-      `Näytetään kansio: ${folderName} ja alikansiot (${filesInFolder.length} tiedostoa)`,
-      'info'
-    );
+
+    viewShellRoot = document.createElement('div');
+    viewShellRoot.id = 'viewShellRoot';
+    viewShellRoot.className = 'view-shell-root';
+    main.insertBefore(viewShellRoot, mainContainer);
   }
 
-  displayFiles();
-  displayFolderChips();
-  updateFileCount();
-  updateSessionDisplay();
+  return viewShellRoot;
 }
 
-/**
- * Handle search functionality
- */
-function handleSearch(): void {
-  const query = searchInput.value.trim().toLowerCase();
-  
-  if (!query) {
-    filterByFolder(state.currentFolderFilter);
+function ensureRouteNavRoot(): HTMLElement {
+  let routeNavRoot = document.getElementById('routeNavRoot');
+
+  if (!routeNavRoot) {
+    const mainContainer = document.querySelector('.main-container');
+    const main = document.querySelector('main');
+
+    if (!mainContainer || !main) {
+      throw new Error('Unable to initialize routed navigation container');
+    }
+
+    routeNavRoot = document.createElement('div');
+    routeNavRoot.id = 'routeNavRoot';
+    routeNavRoot.className = 'route-nav-root';
+    main.insertBefore(routeNavRoot, mainContainer);
+  }
+
+  return routeNavRoot;
+}
+
+function setBrowseVisibility(isVisible: boolean): void {
+  const mainContainer = document.querySelector('.main-container');
+
+  if (mainContainer instanceof HTMLElement) {
+    mainContainer.style.display = isVisible ? '' : 'none';
+  }
+}
+
+async function handleRouteChange(): Promise<void> {
+  const route = parseHashRoute(window.location.hash);
+  const activeShell = getTopLevelShell(route);
+  const routeNavRoot = ensureRouteNavRoot();
+  const viewShellRoot = ensureViewShellRoot();
+
+  renderTopLevelNavigation(routeNavRoot, route);
+
+  if (destroyActiveRouteView) {
+    destroyActiveRouteView();
+    destroyActiveRouteView = null;
+  }
+
+  if (activeShell === 'browse') {
+    viewShellRoot.innerHTML = '';
+    viewShellRoot.style.display = 'none';
+    delete viewShellRoot.dataset.view;
+    setBrowseVisibility(true);
+    await initializeBrowseApp();
     return;
   }
 
-  const baseFiles = state.currentFolderFilter 
-    ? driveService.getFilesInFolder(state.currentFolderFilter, state.allFiles, state.allFolders)
-    : state.allFiles;
-  
-  state.filteredFiles = searchService.filterFilesBySearch(baseFiles, query);
-  state.currentPage = 1;
-  
-  updateStatus(`Hakutulokset: ${state.filteredFiles.length} tiedostoa löytyi`, 'info');
-  displayFiles();
-  updateFileCount();
-  updateSessionDisplay();
-}
+  setBrowseVisibility(false);
+  viewShellRoot.style.display = 'block';
 
-/**
- * Update file count display
- */
-function updateFileCount(): void {
-  const totalFilesSpan = document.getElementById('totalFiles');
-  const totalFoldersSpan = document.getElementById('totalFolders');
-  const currentViewSpan = document.getElementById('currentViewCount');
-  const fileCountSpan = document.getElementById('fileCount');
-
-  if (totalFilesSpan) {
-    totalFilesSpan.textContent = state.allFiles.length.toString();
-  }
-  
-  if (totalFoldersSpan) {
-    totalFoldersSpan.textContent = state.allFolders.length.toString();
-  }
-  
-  if (currentViewSpan) {
-    currentViewSpan.textContent = state.filteredFiles.length.toString();
-  }
-  
-  if (fileCountSpan) {
-    const message = state.filteredFiles.length === 1 
-      ? '1 tiedosto löytyi' 
-      : `${state.filteredFiles.length} tiedostoa löytyi`;
-    fileCountSpan.textContent = message;
-  }
-}
-
-/**
- * Update pagination
- */
-function updatePagination(): void {
-  state.totalPages = Math.ceil(state.filteredFiles.length / state.itemsPerPage);
-  
-  const paginationInfo = document.getElementById('paginationInfo');
-  const paginationControls = document.getElementById('paginationControls');
-  
-  if (!paginationInfo || !paginationControls) return;
-
-  if (state.totalPages <= 1) {
-    paginationControls.style.display = 'none';
-    paginationInfo.textContent = '';
+  if (route.kind === 'drill-catalog') {
+    const drillCatalogView = new DrillCatalogView(viewShellRoot);
+    await drillCatalogView.mount();
+    destroyActiveRouteView = () => drillCatalogView.destroy();
     return;
   }
 
-  paginationControls.style.display = 'flex';
-  
-  const startItem = (state.currentPage - 1) * state.itemsPerPage + 1;
-  const endItem = Math.min(state.currentPage * state.itemsPerPage, state.filteredFiles.length);
-  
-  paginationInfo.textContent = `${startItem}-${endItem} / ${state.filteredFiles.length}`;
+  if (route.kind === 'drill-detail') {
+    const drillDetailView = new DrillDetailView(viewShellRoot, route.drillId);
+    await drillDetailView.mount();
+    destroyActiveRouteView = () => drillDetailView.destroy();
+    return;
+  }
 
-  // Update pagination buttons
-  const prevButton = document.getElementById('prevPage') as HTMLButtonElement;
-  const nextButton = document.getElementById('nextPage') as HTMLButtonElement;
-  
-  if (prevButton) {
-    prevButton.disabled = state.currentPage === 1;
-    prevButton.onclick = () => {
-      if (state.currentPage > 1) {
-        state.currentPage--;
-        displayFiles();
-      }
-    };
+  if (route.kind === 'planner-new') {
+    const plannerDraftView = new PlannerDraftView(viewShellRoot);
+    await plannerDraftView.mount();
+    destroyActiveRouteView = () => plannerDraftView.destroy();
+    return;
   }
-  
-  if (nextButton) {
-    nextButton.disabled = state.currentPage === state.totalPages;
-    nextButton.onclick = () => {
-      if (state.currentPage < state.totalPages) {
-        state.currentPage++;
-        displayFiles();
-      }
-    };
+
+  if (route.kind === 'planner-list') {
+    const plannerSessionListView = new PlannerSessionListView(viewShellRoot);
+    await plannerSessionListView.mount();
+    destroyActiveRouteView = () => plannerSessionListView.destroy();
+    return;
   }
+
+  if (route.kind === 'planner-detail') {
+    const plannerDraftView = new PlannerDraftView(viewShellRoot, undefined, {
+      routeKind: 'detail',
+      sessionId: route.sessionId,
+    });
+    await plannerDraftView.mount();
+    destroyActiveRouteView = () => plannerDraftView.destroy();
+    return;
+  }
+
+  if (route.kind === 'shared-session') {
+    const sharedSessionView = new SharedSessionView(viewShellRoot, route.shareId);
+    await sharedSessionView.mount();
+    destroyActiveRouteView = () => sharedSessionView.destroy();
+    return;
+  }
+
+  if (route.kind === 'editor-drill-new') {
+    const editorDrillView = new EditorDrillView(viewShellRoot, {
+      mode: 'new',
+    });
+    await editorDrillView.mount();
+    destroyActiveRouteView = () => editorDrillView.destroy();
+    return;
+  }
+
+  if (route.kind === 'editor-drill-edit') {
+    const editorDrillView = new EditorDrillView(viewShellRoot, {
+      mode: 'edit',
+      drillId: route.drillId,
+    });
+    await editorDrillView.mount();
+    destroyActiveRouteView = () => editorDrillView.destroy();
+    return;
+  }
+
+  if (route.kind === 'editor-imports') {
+    const editorImportReviewView = new EditorImportReviewView(viewShellRoot);
+    await editorImportReviewView.mount();
+    destroyActiveRouteView = () => editorImportReviewView.destroy();
+    return;
+  }
+
+  delete viewShellRoot.dataset.view;
+  renderViewShell(viewShellRoot, route);
 }
 
-/**
- * Update planning mode UI
- */
-const updatePlanningModeUI = (): void => {
-  const planningBar = document.getElementById('session-planning-bar');
-  if (!planningBar) return;
-
-  planningBar.style.display = sessionPlanningState.isActive ? 'flex' : 'none';
-
-  // Update planning mode toggle button if it exists
-  const toggleBtn = document.querySelector('.planning-toggle-btn');
-  if (toggleBtn) {
-    toggleBtn.textContent = sessionPlanningState.isActive
-      ? 'Lopeta suunnittelu'
-      : 'Aloita harjoitussuunnittelu';
-    toggleBtn.classList.toggle('active', sessionPlanningState.isActive);
+async function initializeRoutedApp(): Promise<void> {
+  if (routeHandlingInitialized) {
+    return;
   }
 
-  // Add visual indicators to file items
-  document.querySelectorAll('.file-item').forEach(item => {
-    item.classList.toggle('planning-mode', sessionPlanningState.isActive);
-  });
-};
+  routeHandlingInitialized = true;
+  await handleRouteChange();
 
-/**
- * Update session display
- */
-const updateSessionDisplay = (): void => {
-  const sessionCount = document.getElementById('session-count');
-  const sessionList = document.getElementById('session-materials-list');
+  const hashChangeHandler = () => {
+    void handleRouteChange();
+  };
 
-  if (sessionCount) {
-    sessionCount.textContent =
-      sessionPlanningState.selectedFiles.size.toString();
-  }
-
-  if (sessionList) {
-    sessionList.innerHTML = '';
-
-    if (sessionPlanningState.selectedFiles.size === 0) {
-      sessionList.innerHTML =
-        '<div class="session-empty">Ei materiaaleja valittuna</div>';
-    } else {
-      Array.from(sessionPlanningState.selectedFiles).forEach(fileId => {
-        const file = state.allFiles.find(f => f.id === fileId);
-        if (file) {
-          const item = createElement('div', 'session-material-item');
-          item.innerHTML = `
-            <span class="material-name">${file.name}</span>
-            <button class="remove-material-btn" onclick="window.FileActions.removeFromSession('${fileId}')" title="Poista">×</button>
-          `;
-          sessionList.appendChild(item);
-        }
-      });
-    }
-  }
-
-  // Update add buttons in file list
-  document.querySelectorAll('.file-item').forEach(item => {
-    const addBtn = item.querySelector('.add-to-session-btn');
-    if (addBtn) {
-      const fileId = addBtn.getAttribute('data-file-id');
-      const isSelected =
-        fileId && sessionPlanningState.selectedFiles.has(fileId);
-      item.classList.toggle('in-session', !!isSelected);
-      if (addBtn) {
-        addBtn.textContent = isSelected ? '✓ Lisätty' : '+ Harjoitus';
-        addBtn.classList.toggle('added', !!isSelected);
-      }
-    }
-  });
-};
-
-/**
- * Initialize event listeners
- */
-function initializeEventListeners(): void {
-  // Search functionality
-  searchInput.addEventListener('input', handleSearch);
-  
-  // Refresh button - force refresh with bypass cache
-  refreshButton.addEventListener('click', () => loadDriveFiles(true));
-
-  // Auto-refresh (optional)
-  if (AUTO_REFRESH_INTERVAL > 0) {
-    setInterval(loadDriveFiles, AUTO_REFRESH_INTERVAL);
-  }
-
-  console.log('Event listeners initialized');
-}
-
-/**
- * Initialize the application
- */
-async function initializeApp(): Promise<void> {
-  console.log('🏒 Hawks Coach Hub - Service Account Version initializing...');
-  
-  // Initialize toast notifications
-  initializeToastContainer();
-  
-  // Initialize event listeners
-  initializeEventListeners();
-  
-  // Remove auth-related UI elements
-  const authElements = document.querySelectorAll('#authorize_div, #signout_div');
-  authElements.forEach(el => {
-    if (el instanceof HTMLElement) {
-      el.style.display = 'none';
-    }
-  });
-  
-  // Load files immediately (no auth required)
-  await loadDriveFiles();
-  
-  console.log('✅ Hawks Coach Hub initialized successfully');
+  window.addEventListener('hashchange', hashChangeHandler);
 }
 
 // Start the application
-document.addEventListener('DOMContentLoaded', initializeApp);
+document.addEventListener('DOMContentLoaded', () => {
+  void initializeRoutedApp();
+});
+
+function addContentTabs() {
+  const mainSectionTitle = document.getElementById('mainSectionTitle');
+  if (!mainSectionTitle) return;
+
+  // Create tab navigation
+  const tabsContainer = document.createElement('div');
+  tabsContainer.className = 'content-tabs';
+  tabsContainer.style.marginBottom = '20px';
+
+  // Define tabs
+  const tabs = [
+    { id: 'handbook', label: 'Valmentajan käsikirja', active: true },
+    { id: 'sport-training', label: 'Lajiharjoittelu', active: false },
+    { id: 'fitness', label: 'Fysiikkaharjoittelu', active: false },
+    { id: 'game-situations', label: 'Pelitilanneroolit', active: false }
+  ];
+
+  // Create tab buttons
+  tabs.forEach(tab => {
+    const tabButton = document.createElement('button');
+    tabButton.className = `content-tab ${tab.active ? 'active' : ''}`;
+    tabButton.textContent = tab.label;
+    tabButton.onclick = () => switchTab(tab.id).catch(error => console.error('Error switching tab:', error));
+    tabsContainer.appendChild(tabButton);
+  });
+
+  // Insert tabs before the search section
+  const searchContainer = document.querySelector('.search-status-container');
+  if (searchContainer && searchContainer.parentNode) {
+    searchContainer.parentNode.insertBefore(tabsContainer, searchContainer);
+  }
+}
+
+async function switchTab(tabId: string): Promise<void> {
+  // Update current active tab for search filtering
+  currentActiveTab = tabId;
+
+  // Update active tab styling
+  const tabs = document.querySelectorAll('.content-tab');
+  tabs.forEach(tab => {
+    tab.classList.remove('active');
+    if (tab.textContent?.includes(getTabLabel(tabId))) {
+      tab.classList.add('active');
+    }
+  });
+
+  // Clear search when switching tabs
+  const searchInput = domCache.get('searchInput') as HTMLInputElement;
+  if (searchInput) {
+    searchInput.value = '';
+  }
+
+  // Show/hide appropriate content based on tab
+  const filesSection = document.querySelector('.files-section');
+  const staticContentSection = document.getElementById('static-content-section');
+
+  switch (tabId) {
+    case 'handbook':
+      if (filesSection) (filesSection as HTMLElement).style.display = 'block';
+      if (staticContentSection) staticContentSection.style.display = 'none';
+      document.getElementById('mainSectionTitle')!.textContent = 'Valmentajan käsikirja';
+      // Show all files for handbook
+      await resetToTabDefaults();
+      break;
+    case 'sport-training':
+      if (filesSection) (filesSection as HTMLElement).style.display = 'block';
+      if (staticContentSection) staticContentSection.style.display = 'block';
+      document.getElementById('mainSectionTitle')!.textContent = 'Lajiharjoittelu';
+      showStaticContent('basic-skills');
+      // Filter files to sport training folders
+      await resetToTabDefaults();
+      break;
+    case 'fitness':
+      if (filesSection) (filesSection as HTMLElement).style.display = 'block';
+      if (staticContentSection) staticContentSection.style.display = 'block';
+      document.getElementById('mainSectionTitle')!.textContent = 'Fysiikkaharjoittelu';
+      showStaticContent('fitness');
+      // Filter files to fitness folders
+      await resetToTabDefaults();
+      break;
+    case 'game-situations':
+      if (filesSection) (filesSection as HTMLElement).style.display = 'block';
+      if (staticContentSection) staticContentSection.style.display = 'block';
+      document.getElementById('mainSectionTitle')!.textContent = 'Pelitilanneroolit';
+      showStaticContent('strategy');
+      // Filter files to game situation folders
+      await resetToTabDefaults();
+      break;
+  }
+
+  // Log tab switch for debugging
+  const stats = tabSearchService.getTabSearchStats(tabId);
+  console.log(`🏷️ Switched to tab "${tabId}":`, stats);
+}
+
+function getTabLabel(tabId: string): string {
+  switch (tabId) {
+    case 'handbook': return 'Valmentajan käsikirja';
+    case 'sport-training': return 'Lajiharjoittelu';
+    case 'fitness': return 'Fysiikkaharjoittelu';
+    case 'game-situations': return 'Pelitilanneroolit';
+    default: return '';
+  }
+}
+
+function showStaticContent(category?: string) {
+  let staticContentSection = document.getElementById('static-content-section');
+
+  if (!staticContentSection) {
+    staticContentSection = document.createElement('div');
+    staticContentSection.id = 'static-content-section';
+    staticContentSection.className = 'static-content-display';
+
+    const contentArea = document.querySelector('.content-area');
+    if (contentArea) {
+      contentArea.appendChild(staticContentSection);
+    }
+  }
+
+  staticContentSection.style.display = 'block';
+
+  // Initialize static content if not already done
+  if (!staticContentSection.hasChildNodes()) {
+    const staticContentDisplay = new StaticContentDisplay();
+    staticContentDisplay.render(staticContentSection);
+  }
+
+  // Filter by category if specified
+  if (category) {
+    const staticContentDisplay = new StaticContentDisplay();
+    staticContentDisplay.renderContentList(category as any);
+  }
+}

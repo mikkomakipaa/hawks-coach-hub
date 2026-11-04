@@ -13,15 +13,38 @@
     />
     <meta name="author" content="Hawks Helsinki" />
     <title>Hawks Helsinki - Valmennuskeskus</title>
-    <link rel="stylesheet" href="styles-minimal.css" />
-    <link rel="icon" type="image/png" href="hawks.png" />
+
+    <!-- PWA Meta Tags -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#dc2626">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Hawks Hub">
+
+    <link rel="stylesheet" href="styles-minimal.css?v=2" />
+    <link rel="icon" type="image/png" href="/hawks.png" />
+
+    <!-- Service Worker Registration -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then(registration => {
+              console.log('🔧 SW registered:', registration.scope);
+            })
+            .catch(error => {
+              console.log('❌ SW registration failed:', error);
+            });
+        });
+      }
+    </script>
   </head>
   <body>
     <header>
       <div class="header-content">
         <div class="logo-section">
           <img
-            src="hawks.png"
+            src="/hawks.png"
             alt="Hawks Helsinki Logo"
             class="hawks-logo"
             onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"
