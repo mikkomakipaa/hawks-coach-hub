@@ -388,14 +388,18 @@ export class ContentManager implements IContentManager {
     const query = options.query?.toLowerCase();
 
     if (query) {
-      if (content.title[language].toLowerCase().includes(query))
+      if (content.title[language].toLowerCase().includes(query)) {
         matched.push('title');
-      if (content.description[language].toLowerCase().includes(query))
+      }
+      if (content.description[language].toLowerCase().includes(query)) {
         matched.push('description');
-      if (content.content[language].toLowerCase().includes(query))
+      }
+      if (content.content[language].toLowerCase().includes(query)) {
         matched.push('content');
-      if (content.tags.some(tag => tag.toLowerCase().includes(query)))
+      }
+      if (content.tags.some(tag => tag.toLowerCase().includes(query))) {
         matched.push('tags');
+      }
     }
 
     return matched;

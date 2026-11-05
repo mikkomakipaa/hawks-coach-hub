@@ -396,8 +396,9 @@ export class EnhancedSearchService {
     // Skill-based tags
     if (name.match(/passing|syöttö|pass/)) tags.push('passing', 'syöttö');
     if (name.match(/shooting|laukaus|shot/)) tags.push('shooting', 'laukaus');
-    if (name.match(/defense|puolustus|defensive/))
+    if (name.match(/defense|puolustus|defensive/)) {
       tags.push('defense', 'puolustus');
+    }
     if (name.match(/offense|hyökkäys|attack/)) tags.push('offense', 'hyökkäys');
     if (name.match(/speed|nopeus|agility/)) tags.push('speed', 'nopeus');
     if (name.match(/reaction|reaktio|quick/)) tags.push('reaction', 'reaktio');

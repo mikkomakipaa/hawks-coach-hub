@@ -99,25 +99,29 @@ function calculateConfidence(folderName: string, category: string): number {
   switch (category) {
     case 'sport-training':
       if (name.includes('laji')) confidence += 30;
-      if (name.includes('harjoittelu') || name.includes('harjoitus'))
+      if (name.includes('harjoittelu') || name.includes('harjoitus')) {
         confidence += 20;
+      }
       if (name.includes('drill') || name.includes('training')) confidence += 20;
-      if (name.includes('tekniikka') || name.includes('technique'))
+      if (name.includes('tekniikka') || name.includes('technique')) {
         confidence += 15;
+      }
       break;
 
     case 'fitness':
       if (name.includes('fysiikka')) confidence += 30;
       if (name.includes('fitness') || name.includes('kunto')) confidence += 25;
       if (name.includes('voima') || name.includes('strength')) confidence += 20;
-      if (name.includes('kestävyys') || name.includes('endurance'))
+      if (name.includes('kestävyys') || name.includes('endurance')) {
         confidence += 20;
+      }
       break;
 
     case 'game-situations':
       if (name.includes('taktiikka')) confidence += 30;
-      if (name.includes('tactics') || name.includes('strategy'))
+      if (name.includes('tactics') || name.includes('strategy')) {
         confidence += 25;
+      }
       if (name.includes('pelitilanne')) confidence += 25;
       if (name.includes('rooli') || name.includes('role')) confidence += 20;
       break;
