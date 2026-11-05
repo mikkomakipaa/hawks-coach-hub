@@ -173,17 +173,17 @@ Suggested age bands: 6-8, 9-10, 11-12, 13-14, 15-16. One taxonomy version per ba
 ## 7. New open questions
 
 | #   | Question                                                                                                                          |
-| --- | --------------------------------------------------------------------------------------------------------------------------------- |
-| N11 | Who owns a session when its coach leaves: coach or team?                                                                          |
-| N12 | Are free-text notes allowed in MS1, or only tags?                                                                                 |
-| N13 | Are win/rank goals discouraged or forbidden for juniors?                                                                          |
-| N14 | Is ranking players within a team prohibited by club policy?                                                                       |
-| N15 | Club or federation load limits per age band; mandatory rest weeks?                                                                |
-| N16 | Who may see another team's data (for example the junior head)?                                                                    |
-| N17 | Sinä or te in Finnish copy?                                                                                                       |
-| N18 | When was the service-account key last rotated, and is the old key revoked?                                                        |
-| N19 | Is the club the data controller and is the developer a processor (agreement needed)?                                              |
-| N20 | Which MS1 flows must work offline? Reviewer suggestion: session record and the current week's plan; assessment as save-and-retry. |
+| --- | --------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
+| N11 | Who owns a session when its coach leaves: coach or team?                                                                          | Team                                               |
+| N12 | Are free-text notes allowed in MS1, or only tags?                                                                                 | Free text                                          |
+| N13 | Are win/rank goals discouraged or forbidden for juniors?                                                                          | No hard limit                                      |
+| N14 | Is ranking players within a team prohibited by club policy?                                                                       | Skill groups allowed 1-3 gorups                    |
+| N15 | Club or federation load limits per age band; mandatory rest weeks?                                                                | No mandatory rest but low / high intensity periods |
+| N16 | Who may see another team's data (for example the junior head)?                                                                    | Junior head only                                   |
+| N17 | Sinä or te in Finnish copy?                                                                                                       | Sinä                                               |
+| N18 | When was the service-account key last rotated, and is the old key revoked?                                                        | Not rotated yet                                    |
+| N19 | Is the club the data controller and is the developer a processor (agreement needed)?                                              | Yes                                                |
+| N20 | Which MS1 flows must work offline? Reviewer suggestion: session record and the current week's plan; assessment as save-and-retry. | These sound solid                                  |
 
 ## 8. Actions pending outside the documents
 
