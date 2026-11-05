@@ -1,7 +1,7 @@
 # Data Model
 
 **Project**: Hawks Coach Hub
-**Last Updated**: 2026-02-28
+**Last Updated**: 2026-11-05
 **Purpose**: Document the current Drive-backed browse runtime model and the shipped structured planner/CMS data model
 
 ---
@@ -19,7 +19,7 @@ Shipped planner/CMS extension:
 - introduces structured drill/session data in a structured backend, using Airtable first
 - preserves Drive as a source of legacy files and attachments
 - separates anonymous browse data from authenticated planner/editor data
-- should keep storage access behind app-owned contracts so Supabase can replace Airtable later without changing the domain model
+- should keep storage access behind app-owned contracts so Postgres (Neon proposed) can replace Airtable later without changing the domain model
 
 ---
 
@@ -257,7 +257,7 @@ The planner/CMS direction no longer treats Drive folder parsing as the strategic
 - The interfaces below are the canonical domain contracts for the shipped planner/editor surfaces and future follow-up tasks.
 - Airtable is a temporary persistence adapter, not the definition of these entities.
 - Airtable field names, linked records, attachment columns, and formula outputs must be mapped into these contracts at the storage layer.
-- Supabase migration should preserve these contracts, with storage-specific changes isolated to repository/service adapters.
+- Postgres migration should preserve these contracts, with storage-specific changes isolated to repository/service adapters.
 
 ### Drill
 
@@ -505,12 +505,33 @@ Role semantics:
 - Planner drill records may reference Drive file IDs or URLs as attachments.
 - Legacy PDFs can be imported into `DrillImportDraft` records and reviewed before conversion into `Drill`.
 
-### Relationship to Airtable and Supabase
+### Relationship to Airtable and Postgres
 
 - Airtable is the temporary persistence layer for `Drill`, `DrillAttachment`, `DrillImportDraft`, `Session`, and `PlannerProfile`.
 - Airtable record IDs, linked-record arrays, select labels, and formula fields are storage details only.
 - Repository-owned adapters must translate Airtable rows into the canonical contracts above.
-- Supabase migration should preserve these entities and route contracts; only storage adapters and physical schema should change.
+- Postgres migration should preserve these entities and route contracts; only storage adapters and physical schema should change.
+
+### Planned Entities (not implemented)
+
+Planned for the coaching and athlete milestones (see `../plans/plan-002-junior-training-programs.md` sections 12 and 19). These are design sketches, not contracts; they will be finalized when the matching issues are designed.
+
+| Entity                                                                                                                                         | Purpose                                                                                                                                                      | Milestone                  |
+| ---------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------- |
+| `Team` (name, age group, season)                                                                                                               | One blank team per coach to start                                                                                                                            | MS1                        |
+| `TaxonomyVersion`, `Skill` (stable key, version, descriptors, age bands), `SkillCategory`                                                      | Versioned shared vocabulary; assessments, goals and drill tags reference the stable key plus the version in force                                            | MS1                        |
+| `Assessment` (`subject_type` team or athlete, `subject_id`, skill stable key, taxonomy version, level, date, assessor) and `Observation`       | One shape for team and athlete level; athlete rows are rejected until MS3                                                                                    | MS1 (team) / MS3 (athlete) |
+| `Goal` (scope team or athlete, type process or development, skill, baseline, target, "how we will see it", due and review dates), `GoalReview` | Team goals first; athlete goals in MS3                                                                                                                       | MS1 / MS3                  |
+| `Program`, `Cycle`, `Week`                                                                                                                     | Season structure linked to goals and focus skills                                                                                                            | MS1                        |
+| `Session` (extended)                                                                                                                           | `owner_user_id`, nullable `team_id` and `week_id`, `planned_for`; planned vs actual; head count; per-block goal, intensity, group size, space (all optional) | MS1                        |
+| `Drill` (extended)                                                                                                                             | Age range, primary skill plus up to two secondary, group size, equipment, space, intensity, game-like flag, up to three coaching points, one progression     | MS1                        |
+| `Athlete`, `Membership`                                                                                                                        | Named athletes and team roles                                                                                                                                | MS3                        |
+| `Assessment` (per athlete), per-athlete `Goal`                                                                                                 | Individual development                                                                                                                                       | MS3                        |
+| `Attendance`, `AthleteLog`                                                                                                                     | Per-athlete attendance and self-reported effort                                                                                                              | MS3                        |
+
+Role mapping (proposal, see CORE_ARCHITECTURE Decision 12): system role `admin` or `user`; team membership role `head_coach` or `assistant`; content capability `editor` (a capability, not a user type). The earlier `viewer/editor/admin` planner roles are an interim editor-test mechanism. Athlete and guardian roles are introduced in MS3.
+
+Rules for new entities: additive and backward compatible, `version` field for optimistic locking, no named-athlete data before MS3, row-level security on every table when the Postgres backend is introduced.
 
 ### Transitional Note
 

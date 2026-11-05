@@ -314,3 +314,42 @@ Notes:
 - Browse mode stays visually lightweight and immediate.
 - Coach planner surfaces prioritize speed and clarity.
 - Editor/admin surfaces can be denser, but must stay structured and keyboard-friendly.
+
+---
+
+## Planned MS1 Navigation and Screens (expert review, 2026-11-05)
+
+Not yet drawn. This is the list the review says must exist before MS1 screens are built.
+
+### Information architecture
+
+- Top level: Selaa | Harjoitteet | Joukkue (editor behind role). On phones the primary destinations also sit in a bottom bar within thumb reach; editor stays out of it.
+- Inside Joukkue, a short swipeable tab row: Yleiskatsaus | Arviointi | Tavoitteet | Ohjelma | Harjoitukset.
+- Breadcrumbs only on deep screens (Ohjelma > Jakso > Viikko). Always a "back to Joukkue" link, and the current team name and season in the header (multi-team ready).
+- New routes under `/team`, `/team/assess`, `/team/goals`, `/team/program/...`; the existing hash router stays so the previous IA can be restored. Coach routes are lazy-loaded.
+
+### Screens to wireframe (mobile first, then tablet)
+
+1. Sign-in and no-access
+2. Create team (name, age group, season; save-fail retry)
+3. Joukkue overview in three states: first run (checklist), active (this week, next session, goals, strengths), no data
+4. Team assessment, one category per screen, with summary and sync state
+5. Team strengths and next development areas, with change since last time and a "not enough assessments" state
+6. Observation quick-add (bottom sheet) and list
+7. Team goals: list, create (sentence template), review
+8. Program: season > cycle > week, week detail (focus, goals, sessions)
+9. Session builder from a week (extend wireframes 4-5 with week link, focus chips, coverage note)
+10. Session record (one-screen bottom sheet, offline-capable)
+11. Drill search: search plus Taito, Ikäryhmä and Kesto chips, team-focus preset, Drive material collapsed
+12. Sync and conflict screens, offline banner (shared)
+13. Share and print for the week
+14. Goal review prompt with reassess action
+15. Permission-denied and error states for the new routes
+
+### First run
+
+Three-step checklist on the overview: assess the team (about 2 minutes), pick one to three goals, plan the first week. Pre-filled season, suggested team name, optional clearly labelled demo data, dismissable inline hints instead of a tour modal.
+
+### Required states per screen
+
+Empty, loading (skeleton or spinner), error with retry, no permission, offline, and "no assessment yet" where relevant.

@@ -2,13 +2,15 @@
 
 **Project**: Hawks Coach Hub
 **Status**: Accepted
-**Last Updated**: 2026-02-28
+**Last Updated**: 2026-11-05
 
 ---
 
 ## Context
 
 Hawks Coach Hub currently ships as a read-only Google Drive browser for Hawks Helsinki coaching staff plus additive planner/editor routes for structured drills, sessions, sharing, and import review.
+
+Direction (2026-11-05): the product is growing from a coach-only material browser and planner into a coaching tool for junior teams, delivered in three milestones: MS1 Coach, MS2 Junior head, MS3 Athlete and guardian. See `../plans/plan-002-junior-training-programs.md` and `USE_CASES.md`. Browse mode stays anonymous and read-only; new functionality follows the structured planner/editor boundary below.
 
 Current shipped constraints:
 
@@ -24,6 +26,7 @@ Structured planner/editor constraints:
 - Add structured drill/session data without making planner content depend on Drive folder heuristics
 - Separate coach-facing planning flows from editor/admin authoring flows
 - Introduce authenticated write access only where planner/CMS editing requires it
+- Planned (MS1): real authentication and team-scoped access replace the header-based planner identity before any new coaching data is stored. Personal data about named athletes arrives only in MS3.
 
 ---
 
@@ -369,7 +372,7 @@ Notes:
 
 ---
 
-## Decision 11: Airtable First, Supabase Later for Planner Backend
+## Decision 11: Airtable First, Postgres Later for Planner Backend
 
 > **Update 2026-11-04**: the proposed follow-up target is now Postgres on Neon instead of Supabase (see `plans/plan-002-junior-training-programs.md`, section 9a). An ADR will confirm it.
 
@@ -377,13 +380,13 @@ Notes:
 
 ### Decision
 
-Use **Airtable** as the initial mock backend for structured drills, sessions, permissions metadata, and import drafts during MVP shaping. Keep all planner/CMS data access behind repo-owned service abstractions so a later move to **Supabase** can happen without major frontend rewrites.
+Use **Airtable** as the initial mock backend for structured drills, sessions, permissions metadata, and import drafts during MVP shaping. Keep all planner/CMS data access behind repo-owned service abstractions so a later move to **Postgres (Neon proposed, replacing the earlier Supabase candidate)** can happen without major frontend rewrites.
 
 ### Rationale
 
 - Airtable is fast to stand up for content-model validation and early editor workflow iteration
 - The team can validate drill/session schema and operational flows before committing to a longer-term backend
-- Supabase still fits the likely long-term need for stronger relational modeling, auth, and storage once the MVP has stabilized
+- A relational Postgres backend (Neon proposed) fits the likely long-term need for stronger relational modeling, auth, and storage once the MVP has stabilized
 - A backend abstraction boundary now reduces migration risk later
 
 ### Consequences
@@ -391,7 +394,7 @@ Use **Airtable** as the initial mock backend for structured drills, sessions, pe
 - Planner/CMS data model becomes structured-data-backed immediately, but on a temporary Airtable implementation
 - Backend auth and migration workflows become part of the repo's operational model
 - Airtable-specific assumptions should not leak deeply into UI code or shared business logic
-- A Supabase migration path must be preserved in the service and data-contract design
+- A Postgres migration path must be preserved in the service and data-contract design
 - docs and NFRs must distinguish anonymous browse behavior from shipped planner/editor behavior
 
 ### Storage Boundary Rules
@@ -401,7 +404,7 @@ The planner/CMS architecture must keep a strict boundary between canonical domai
 - Domain contracts are defined in `docs/DATA_MODEL.md` and are storage-agnostic.
 - Airtable table names, linked-record shapes, field labels, and formula fields are adapter concerns, not application contracts.
 - UI code, route handlers, and shared business logic should depend on repo-owned entity/service interfaces, not Airtable response shapes.
-- Supabase migration should require swapping storage adapters and persistence details, not redesigning route contracts or domain entities.
+- Postgres migration should require swapping storage adapters and persistence details, not redesigning route contracts or domain entities.
 - Drive file references remain optional external references on planner entities, not the persistence backbone for structured planner records.
 
 ---
@@ -487,3 +490,34 @@ Keep the current browse mode and shipped planner/editor routes in vanilla TypeSc
 2. **File preview**: Inline PDF preview without leaving the app
 3. **Notifications**: Alert coaches when new materials are uploaded
 4. **Analytics**: Track most-accessed drills (privacy-safe, aggregate)
+
+---
+
+## Decision 12: Authorization Model for Coaching Data
+
+**Status**: Proposed (2026-11-05, expert review; to be confirmed by the storage and auth ADR)
+
+**Context**: Planner identity is currently derived from client-supplied headers, including the role, with a header fallback when no profile exists. That is not authentication and cannot guard coaching data. Roles `viewer/editor/admin` cannot express team scope.
+
+**Proposal**:
+
+- Identity comes only from a verified session or token; roles come only from the database.
+- Authorization lives in one policy module (`authorize(actor, team, action)`); routes never query by raw team id.
+- Row-level security is added as defence in depth on team-scoped tables: tenant key `team_id`, membership table as the only source of policy, a non-owner non-`BYPASSRLS` application role, `FORCE ROW LEVEL SECURITY`, user id set with `SET LOCAL` in a transaction.
+- Roles are three orthogonal things: system role (`admin`, `user`), team membership role (`head_coach`, `assistant`), and content capability (`editor`). Athlete roles arrive in MS3.
+- The Neon Data API is not used; all access goes through `api/` routes.
+
+**Consequences**: the header-based identity is removed from all write routes before any coaching data is stored (hard gate for MS1 stage 1a). Cross-team access is covered by automated negative tests.
+
+---
+
+## Decision 13: Data Migration and API Contract Rules
+
+**Status**: Proposed (2026-11-05)
+
+- Drills move from Airtable to Postgres before junior skill tags are added, through an idempotent script keyed on the Airtable record id; `slug` and ids stay stable because share links and `GET /api/drills/:idOrSlug` are public contracts. Dual-read behind a flag, cut over, keep Airtable read-only for one release.
+- API changes inside existing routes are additive only (new optional fields). New coaching endpoints are versioned (`/api/v1/...`) and may use one catch-all router per domain to stay within the serverless function limits.
+- Public contracts get a DTO schema test.
+- Coach routes are lazy-loaded so the anonymous browse bundle stays within its performance budget; a small typed view-module pattern (or a small library for new screens only) is decided in a separate ADR.
+- MS1 offline scope: drafts survive reload and saves retry; no background sync or outbox until after the pilot.
+- Health endpoint and structured JSON logs with a request id and no personal data.

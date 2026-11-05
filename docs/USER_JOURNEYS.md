@@ -1,7 +1,7 @@
 # User Journey Maps
 
 **Project**: Hawks Coach Hub
-**Last Updated**: 2026-02-28
+**Last Updated**: 2026-11-05
 
 ---
 
@@ -11,6 +11,8 @@ Hawks Coach Hub now has two documented experience surfaces:
 
 - **Browse mode**: current no-login, Drive-backed material retrieval
 - **Planner/CMS extension**: structured drill catalog, session planning, and editor/admin content workflows
+
+Planned extension (2026-11-05): coaching journeys for junior teams (create a team, assess the team, set goals, plan a program and sessions) and, later, junior-head and athlete/guardian journeys. They are described as use cases in `USE_CASES.md` and will be turned into journey maps once the use cases are accepted.
 
 The key product rule is unchanged:
 

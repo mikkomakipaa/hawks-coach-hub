@@ -1,8 +1,29 @@
 # User Personas
 
 **Project**: Hawks Coach Hub
-**Last Updated**: 2026-02-28
+**Last Updated**: 2026-11-05
 **Purpose**: Define target users to guide product decisions and UX design
+
+---
+
+## Update 2026-11-05: Junior Programs
+
+The product is moving toward junior team training programs. The personas below were written for a single senior team and still describe the coach and admin well. The following user groups are added or refined; details are in `USE_CASES.md` and are **drafts pending product-owner review**.
+
+| Group                                  | Priority    | Summary                                                                                                                                        |
+| -------------------------------------- | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| Coach (junior team, head or assistant) | Milestone 1 | Sets team assessment, goals, program and sessions; often a volunteer with limited time. Harri and Anu below are the closest existing personas. |
+| Junior head / admin                    | Milestone 2 | Coordinates juniors across teams: skills language, coach access, material, templates. Mika below is the closest existing persona.              |
+| Athlete                                | Milestone 3 | Junior player; sees the program and logs progress. Not yet researched; age range and devices are open.                                         |
+| Guardian                               | Milestone 3 | Parent or carer of a minor; role is to be confirmed.                                                                                           |
+
+Draft personas from the expert review (to be validated with real people):
+
+- **Volunteer junior coach "Jenni"** (MS1 primary): parent-coach, 35-45, two to three hours a week for the team, low tech confidence, phone first, shares the role with an assistant. Needs a first-run checklist, quick capture and Finnish copy that is plain and consistent.
+- **Athlete** (MS3): do not design one UI for all ages. Rough bands to confirm: about 7-9 (learning through play), 10-12, 13-16, with different language, reading level and sign-in. Positive, growth framing; sees only their own one to three goals and the next session; no numeric scores for the youngest; no peer comparison.
+- **Guardian** (MS3): schedule and team focus; consent is a separate plain-language flow.
+
+Research needed before MS3: athlete age range, sign-in options, what athletes should see about themselves, and guardian involvement.
 
 ---
 
@@ -136,7 +157,7 @@
 
 ## Anti-Persona: Non-Coaching Staff
 
-**Who we don't design for**: Parents, players, media, general public
+**Who we don't design for (in MS1 and MS2)**: media, general public. Players and guardians become target users in MS3 (see the update at the top of this document).
 
 - App is for internal coaching staff only
 - No public access / no need for registration or landing page

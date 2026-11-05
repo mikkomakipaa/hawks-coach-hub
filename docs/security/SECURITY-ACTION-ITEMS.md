@@ -1,8 +1,10 @@
 # Security Review - Immediate Action Items
 
 **Review Date:** 2025-10-29
-**Overall Security Grade:** B+ (Good)
-**Status:** 2 HIGH priority items requiring immediate attention
+
+> **Note 2026-11-05**: this review predates the planner/editor routes. Known gaps added since: planner identity is header-based with a client-supplied role fallback (not real authentication), and personal data about minors is planned for Milestone 3 and needs a privacy review first. See `../../plans/plan-002-junior-training-programs.md` (F1, F2). Items below have not been re-verified.
+> **Overall Security Grade:** B+ (Good)
+> **Status:** 2 HIGH priority items requiring immediate attention
 
 ---
 

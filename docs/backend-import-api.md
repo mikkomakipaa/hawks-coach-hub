@@ -1,6 +1,6 @@
 # Backend Import API
 
-**Last Updated**: 2026-02-28
+**Last Updated**: 2026-11-05
 
 This document describes the implemented backend contract for editor import drafts, review-state transitions, and conversion into canonical drills.
 
@@ -109,7 +109,7 @@ Isolation rules:
 
 - Airtable field names such as `Extracted Fields JSON`, `Converted Drill App ID`, and `Display Name` stay inside adapter code
 - route handlers and clients only see canonical `DrillImportDraft`, `Drill`, and `PlannerProfile` shapes
-- replacing Airtable with Supabase should only require adapter changes behind the same repository interfaces
+- replacing Airtable with Postgres (Neon proposed) should only require adapter changes behind the same repository interfaces
 
 Current Airtable environment variables:
 

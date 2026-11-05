@@ -1,14 +1,14 @@
 # Planner API Implementation Boundaries
 
 **Project**: Hawks Coach Hub
-**Last Updated**: 2026-02-28
+**Last Updated**: 2026-11-05
 **Purpose**: Define the canonical backend/API surface and layer boundaries for the shipped drill catalog, coach planner, shared-session, and editor/import features
 
 ---
 
 ## Why This Document Exists
 
-This is the single implementation reference for planner/editor API boundaries and the Airtable adapter seam that must survive a later Supabase migration.
+This is the single implementation reference for planner/editor API boundaries and the Airtable adapter seam that must survive a later Postgres migration (Neon proposed).
 
 Use it when implementing:
 
@@ -152,7 +152,7 @@ Required implementation pattern:
 4. storage adapter maps Airtable rows into canonical entities
 5. route handler returns canonical JSON response
 
-If Supabase replaces Airtable later:
+If Postgres (Neon proposed) replaces Airtable later:
 
 - replace repository or storage-adapter internals
 - preserve route contracts and domain entities
@@ -196,6 +196,6 @@ Use this checklist during implementation tasks:
 - Is auth/role enforcement happening before persistence calls?
 - Are Airtable-specific mappings isolated to backend adapter code?
 - Can the frontend service swap backend storage vendors without changing its own public methods?
-- Can the UI render the same data if Airtable is replaced by Supabase?
+- Can the UI render the same data if Airtable is replaced by Postgres?
 
 If any answer is "no", the boundary is too weak and should be corrected before merging.

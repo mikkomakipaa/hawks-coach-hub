@@ -1,7 +1,7 @@
 # Metrics & Performance Targets
 
 **Project**: Hawks Coach Hub
-**Last Updated**: 2026-02-28
+**Last Updated**: 2026-11-05
 
 ---
 
@@ -93,3 +93,21 @@ In production, timings are still available in browser performance tooling, but t
 | 2025-11 (post-optimization)        | ~5 seconds            | ~127            | Parallel batch loading                 |
 | Subsequent loads (cached)          | <200ms                | —               | In-memory cache                        |
 | 2026-02 planner hardening baseline | <250ms catalog settle | 2 mocked drills | Includes current 150ms debounce budget |
+
+---
+
+## Planned Product Metrics (coaching milestones)
+
+Not yet instrumented. Proposed in `../plans/plan-002-junior-training-programs.md` and to be confirmed:
+
+| Metric                                                                     | Milestone |
+| -------------------------------------------------------------------------- | --------- |
+| Time from first sign-in to a created team with a team assessment           | MS1       |
+| Time to add 5 drills to a session                                          | MS1       |
+| Share of program weeks with at least one planned session                   | MS1       |
+| Share of sessions built from the material bank without opening legacy PDFs | MS1       |
+| Mobile (375px) task success rate for assessment and planning               | MS1       |
+| Goal review completion rate                                                | MS1       |
+| Athlete log completion rate (two taps minimum)                             | MS3       |
+
+Privacy rule: product metrics must not use identifiable athlete data.

@@ -1,14 +1,14 @@
 # Plan-002: Junior Training Program Planning
 
 **Created**: 2026-11-04
-**Status**: Draft v2 - scope extended on 2026-11-04 (coach development tool + athlete app, see Part II from section 8). Needs product review.
+**Status**: Draft v3 - organised in three milestones: **MS1 Coach**, **MS2 Junior head**, **MS3 Athlete and guardian** (section 13; decisions in Part III). Sections 1-16 aligned to the milestones on 2026-11-05. Expert review (architect, UX, security, coach) consolidated in `plan-002-expert-review.md`; outcomes in Part IV. Needs product review.
 **Scope decision (2026-11-04)**: Floorball juniors only. Keep the current floorball model; shift content and UX to junior age groups and add season/program planning on top of sessions.
 **Tracking**: GitHub Issues, epic label `epic:junior-programs`. This plan is the narrative; the issues are the source of truth for task status.
 **Builds on**: [plan-001](./plan-001-training-session-planner.md) (session planner + editor CMS)
 
 ---
 
-## 1. Where we are (progress audit, 2026-11-04)
+## 1. Where we are (progress audit, 2026-11-04; updated 2026-11-05)
 
 ### Delivered (tasks 009-028 all have result files)
 
@@ -28,31 +28,31 @@
 | ------------------- | --------------------------------------------------------------------------------------------------- |
 | `npm run typecheck` | Pass                                                                                                |
 | `npm run test:run`  | 163 / 163 pass (23 files, vitest 5.1.0)                                                             |
-| `npm run lint`      | **Fail: 61 errors, 30 warnings** (pre-existing, noted in task 020 result)                           |
+| `npm run lint`      | Pass (was 61 errors; fixed 2026-11-05, commit hook enforces it)                                     |
 | `npm run test:e2e`  | **Not verified**: task results say sandbox blocked `vite preview`; needs a run on a real machine/CI |
 | `npm audit`         | 7 findings left (minimatch ReDoS via eslint tooling)                                                |
 
 ### Risks found
 
-1. **Almost none of the planner/editor work is committed.** It sits in the git index, mixed with agent-tooling files. Last real commits are from the Drive-browser era. This is the top risk.
+1. ~~Planner/editor work was uncommitted~~ - resolved 2026-11-05: committed in logical commits and pushed.
 2. `package.json` `dev` script hardcodes a local service-account path (must not be committed).
 3. Airtable is the interim database; the Airtable-to-Postgres (Neon) decision is proposed but not yet recorded as an ADR and affects the new program data model.
 4. Product copy, personas and journeys still describe a single senior team (Hawks Helsinki), not junior programs.
-5. e2e and lint are not CI-green, so regressions can slip in during a pivot.
+5. e2e has not been verified in CI, so regressions can slip in during the pivot (lint is now clean).
 
 ---
 
 ## 2. Goal
 
-Let junior floorball coaches plan a **training program** (a season or cycle for an age group), not just single sessions, using a drill library tagged for junior development.
+Give junior floorball teams a coaching tool: coaches set targets and record where the team stands, plan training programs and sessions from the Hawks material bank (with LLM assistance later), and, at the end, athletes see the program and log progress. Built in modules, coach needs first.
 
-Target users (to validate, see Open Questions):
+Target users, in priority order (see `docs/USE_CASES.md`):
 
-- **Junior team coach** (often a volunteer parent): needs a ready structure, limited time, low tech confidence.
-- **Junior coordinator / head of juniors**: wants consistent development themes across age groups.
-- **Assistant coach**: runs sessions from a plan someone else made.
+- **Coach (MS1)**: junior team head or assistant coach, often a volunteer with limited time. Needs a ready structure and quick capture.
+- **Junior head / admin (MS2)**: wants consistent skills language, access and material across teams.
+- **Athlete and guardian (MS3)**: athletes see their program and log progress; guardian role to be confirmed.
 
-### Success metrics
+### Success metrics (MS1 unless noted)
 
 - Time from "new season" to first complete 4-week program under 15 minutes.
 - Share of program weeks that have at least one session planned.
@@ -81,80 +81,61 @@ Principles:
 
 ---
 
-## 4. Phases
+## 4. Phases and milestones
+
+Work is sequenced as Phase 0 followed by three milestones. Section 13 has the full table; this is the short form.
 
 ### Phase 0 - Baseline and hygiene (P0, blocks everything)
 
 Goal: a clean, committed, CI-green starting point.
 
-- Commit the planner/editor work in logical commits, separate from tooling files.
+- Commit the planner/editor work in logical commits, separate from tooling files (done).
 - Remove the hardcoded key path from `package.json`; document `.env` usage.
-- Get lint to zero errors and run e2e in CI.
-- Resolve remaining `npm audit` findings.
-- Update docs and AGENTS.md for the GitHub-issues workflow (done with this plan).
+- Lint to zero errors (done in code), run e2e in CI, resolve remaining `npm audit` findings.
+- Update docs and `AGENTS.md` for the GitHub-issues workflow (done).
 
-### Phase 1 - Junior content model (P0)
+### MS1 - Coach
 
-Goal: drills are discoverable by junior age group and learning goal.
+One blank team with no players; team-level coaching functions. No personal data about minors.
 
-- Extend `Drill` with: age group range, skill focus tags, group size, equipment, space needed, intensity, coaching tips for beginners.
-- Age-group configuration (labels and ranges are an Open Question).
-- Catalog filters for age group and skill focus.
-- Editor form fields for the new metadata.
+- **1a Foundation**: real sign-in, roles, team-scoped access, storage ADR (Neon proposed), blank team.
+- **1b Coaching core**: team assessment and observations, team goals, junior metadata on drills (age group, skill tags) with catalog filters and editor fields.
+- **1c Planning**: program, cycles and weeks; sessions attached to weeks; team-level session record; program print/share.
+- **1d Assistant**: LLM planning assistant, last, may slip without blocking the milestone.
 
-### Phase 2 - Program planning (P0/P1)
+### MS2 - Junior head
 
-Goal: create and edit a program with weekly themes.
+Taxonomy editor, coach management, material curation, program templates per age group, cross-team views and skill coverage, season rollover.
 
-- Domain model, API and storage for programs and weeks.
-- Program list and program detail views (mobile first).
-- Create program from template (for example "8-week autumn block").
+### MS3 - Athlete and guardian
 
-### Phase 3 - Session-program integration (P1)
-
-Goal: sessions live inside the program.
-
-- Attach sessions to program weeks; create a session pre-filled from the week's theme.
-- Coverage view: which skill focuses are covered per week.
-- Program print/share view for parents and assistants.
-
-### Phase 4 - Onboarding and content (P1/P2)
-
-- Starter drill set and program templates for juniors.
-- Simple coach onboarding and help.
-- ADR: production storage and auth. Proposed: Postgres on Neon with Managed Better Auth; RLS required on every table.
+Roster and all data about named athletes (athlete-level assessment and goals, per-athlete attendance, individual review, data export and erasure), the athlete app, and the guardian view. Gated by the privacy questions N1-N4.
 
 ---
 
 ## 5. Issue map
 
-> Numbers in the first column are plan-local. GitHub issues are offset by +2 (plan 1 = #3 ... plan 17 = #19). See section 14 for how Part II changes this map.
+Created in GitHub (epic label `epic:junior-programs`). Numbers are the GitHub issue numbers. Priority labels are as created; the milestone column is the placement under this plan. Estimates follow the playbook scale. GitHub milestones are not created yet.
 
-Created in GitHub (see issue tracker, epic `epic:junior-programs`). Estimates follow the playbook scale; anything above 8 is split.
-
-| #   | Title                                                 | Phase | Priority | Points |
-| --- | ----------------------------------------------------- | ----- | -------- | ------ |
-| 1   | Commit planner/editor work in logical commits         | 0     | P0       | 3      |
-| 2   | Remove hardcoded service-account path from dev script | 0     | P0       | 1      |
-| 3   | Get lint to zero errors                               | 0     | P0       | 5      |
-| 4   | Run Playwright e2e in CI and fix failures             | 0     | P0       | 5      |
-| 5   | Fix remaining npm audit findings (minimatch)          | 0     | P1       | 2      |
-| 6   | Update personas and journeys for junior coaches       | 1     | P1       | 3      |
-| 7   | Add junior metadata to Drill model and API            | 1     | P0       | 5      |
-| 8   | Filter drill catalog by age group and skill focus     | 1     | P0       | 3      |
-| 9   | Editor form for junior drill metadata                 | 1     | P1       | 3      |
-| 10  | Program domain model, API and storage                 | 2     | P0       | 8      |
-| 11  | Program list and create-program UI                    | 2     | P0       | 5      |
-| 12  | Program week view with themes                         | 2     | P1       | 5      |
-| 13  | Attach sessions to program weeks                      | 3     | P1       | 5      |
-| 14  | Skill-coverage summary per program                    | 3     | P2       | 3      |
-| 15  | Program print and share view                          | 3     | P1       | 3      |
-| 16  | Starter drills and program templates                  | 4     | P2       | 5      |
-| 17  | ADR: production storage (Neon Postgres + auth)        | 4     | P1       | 2      |
-
-Old `todo/` tasks 009-028 are complete and archived, not migrated (no open work found). Open follow-ups from their results became issues 3 and 4.
-
----
+| Issue | Title                                                  | Milestone / stage                                  | Priority label   | Points |
+| ----- | ------------------------------------------------------ | -------------------------------------------------- | ---------------- | ------ |
+| #3    | Commit planner/editor work in logical commits          | Phase 0 (done)                                     | P0               | 3      |
+| #4    | Remove hardcoded service-account path from dev script  | Phase 0                                            | P0               | 1      |
+| #5    | Get lint to zero errors                                | Phase 0 (done in code)                             | P0               | 5      |
+| #6    | Run Playwright e2e in CI and fix failures              | Phase 0                                            | P0               | 5      |
+| #7    | Fix remaining npm audit findings (minimatch)           | Phase 0                                            | P1               | 2      |
+| #8    | Update personas and journeys for junior coaches        | MS1 prep (docs)                                    | P1               | 3      |
+| #19   | ADR: production storage and auth (Neon Postgres + RLS) | MS1 1a                                             | P1 (proposed P0) | 3      |
+| #9    | Add junior metadata to Drill model and API             | MS1 1b                                             | P0               | 5      |
+| #10   | Filter drill catalog by age group and skill focus      | MS1 1b                                             | P0               | 3      |
+| #11   | Editor form for junior drill metadata                  | MS1 1b                                             | P1               | 3      |
+| #12   | Program domain model, API and storage                  | MS1 1c                                             | P0               | 8      |
+| #13   | Program list and create-program UI                     | MS1 1c                                             | P0               | 5      |
+| #14   | Program week view with themes                          | MS1 1c                                             | P1               | 5      |
+| #15   | Attach sessions to program weeks                       | MS1 1c                                             | P1               | 5      |
+| #17   | Program print and share view                           | MS1 1c                                             | P1               | 3      |
+| #16   | Skill-coverage summary per program                     | MS2                                                | P2               | 3      |
+| #18   | Starter drills and program templates for juniors       | Starter drills MS1 1b; templates per age group MS2 | P2               | 5      |
 
 ## 6. Open questions (original list; validated and extended in section 8)
 
@@ -165,16 +146,16 @@ Old `todo/` tasks 009-028 are complete and archived, not migrated (no open work 
 5. **Hawks branding**: stay Hawks-branded, or neutral junior-floorball branding?
 6. **Existing content**: is the current drill library suitable for juniors, or does it need tagging/curation first? Who does it?
 
-No issue in Phase 2+ should be implemented until questions 1-3 are answered (business logic is not assumed).
+No MS1 stage 1b-1c issue should be implemented until questions 1-3 are answered (business logic is not assumed).
 
 ---
 
 ## 7. Definition of done for this plan
 
 - Phase 0 issues closed; main is green on typecheck, lint, unit and e2e.
-- Phase 1-3 issues closed with acceptance criteria checked off.
-- `docs/` updated for the data model, API and user journeys.
-- Rollback: each phase is additive behind new routes; disabling the program routes returns the app to the plan-001 behavior.
+- Each milestone is done when its stages are shipped, their issues are closed with acceptance criteria checked off, and the MS1 pilot (one coach, one team) has used it.
+- `docs/` updated for the data model, API, use cases and user journeys at each milestone.
+- Rollback: every milestone is additive behind new routes; disabling a module's routes returns the app to the previous state.
 
 ---
 
@@ -210,7 +191,7 @@ This changes several earlier assumptions. Each original question is re-checked b
 | N9  | **Language**: Finnish-first confirmed? Any Swedish or English need for athletes or guardians?                                                                                                                                                                                                                     | M7        |
 | N10 | **Scale**: how many teams, coaches and athletes for the first rollout (one team pilot vs whole junior section)? Drives hosting, cost and rollout risk.                                                                                                                                                            | M0        |
 
-No module that touches athlete data starts before N1-N3 have written answers.
+No module that touches athlete data starts before N1-N3 have written answers. Under Part III this means Milestone 3; N5-N7 gate stage 1d.
 
 ## 9. Findings that change the plan
 
@@ -232,6 +213,16 @@ Neon is serverless Postgres, so row-level security works exactly as in any Postg
 - **Neon Data API** (optional) can expose tables through REST but requires RLS on every table; the existing `api/` routes can instead query Neon directly.
 
 What Neon does not bundle compared with Supabase: file storage and realtime are not needed in M0-M5. Attachments stay in Google Drive or a blob store; revisit if photo or video uploads are wanted.
+
+ADR requirements added by the expert review (2026-11-05):
+
+- **Authorization**: proposed model is app-level authorization in one policy module (routes never query by raw team id), with RLS as defence in depth on team-scoped tables.
+- **RLS mechanics**: tenant key `team_id` on every domain table and a membership table `(user_id, team_id, role)` as the only source of policy; a non-owner, non-`BYPASSRLS` application role; `FORCE ROW LEVEL SECURITY`; the user id set with `SET LOCAL` inside a transaction (never a session-level `SET` over a pooled connection); views with `security_invoker`; no `SECURITY DEFINER` shortcuts; cross-tenant negative tests in CI against a Neon branch; an automated "no table without RLS" check.
+- **Secrets**: separate pooled runtime URL and direct migration URL; the owner role is used only by migrations.
+- **Neon Data API**: not used. All access goes through `api/` routes, so there is one authorization surface.
+- **Auth spike exit criteria** (time-boxed): sign-in, invite, session revocation, token verified in a Vercel function, cookie behaviour with the hash-routed SPA, and a Finnish email sender. Named fallback: Better Auth self-hosted on the same database, or Auth.js. The auth user table stays separate from the domain coach profile.
+- **Migration**: drills move to Postgres before junior skill tags are added, with an idempotent script keyed on the Airtable record id (`legacy_id`); `slug` and ids stay stable because share links and `GET /api/drills/:idOrSlug` are public; dual-read behind a flag, then cut over with Airtable kept read-only for one release; sessions gain `owner_user_id` and a nullable `team_id` so legacy sessions survive.
+- **Environments**: Neon branch per pull request with seeded fixtures only (schema and starter taxonomy), never a copy of production data; one migration tool chosen in the ADR; EU region fixed now; point-in-time-restore window and a restore drill before MS3.
 
 Open for the ADR: use the Managed Better Auth or another provider; per-request RLS (database role and JWT claims set per request) versus app-level checks backed by RLS; EU region for data residency (N1); and backup and retention policy.
 
@@ -258,21 +249,29 @@ Design principles:
 
 Modules are independent vertical slices (data, API routes, UI, docs, tests) behind their own routes, with explicit dependencies. A module can be disabled by removing its route registration, which gives the rollback path.
 
+Milestone placement (Part III): M0, M1 (blank team), M2 and M3 at team level, M4, M5, M6 tagging and search, and M9 are in **MS1**. M6 curation and admin tools are **MS2**. Roster, athlete-level M2/M3, per-athlete attendance, M7, M8 individual review and guardian features are **MS3**. Priority tags in the module headings below are replaced by the milestone shown in each heading.
+
 ```text
-M0 Foundation: identity, roles, teams, storage
- ├─ M1 Roster: teams, age groups, athletes, coach membership
- │   ├─ M2 Assessment: skills, strengths and weaknesses, coach notes
- │   │   └─ M3 Goals: team and individual targets, review dates
+MS1 Coach
+M0 Foundation: sign-in, roles, team-scoped access, storage
+ ├─ M1 Team (blank, no players)
+ │   ├─ M2 Team assessment: skills, strengths and weaknesses, team notes
+ │   │   └─ M3 Team goals: targets, review dates
  │   │       └─ M4 Program planning: season, cycle, week themes
- │   │           └─ M5 Session integration: sessions inside the program, attendance
- │   │               ├─ M7 Athlete app: view program, log progress
- │   │               └─ M8 Progress and review: dashboards, goal reviews
+ │   │           └─ M5 Sessions in the program, team-level session record
  │   └─ (M6 runs in parallel)
  ├─ M6 Material bank: junior-tagged drills, Hawks Drive material linked to skills
- └─ M9 LLM assistant: suggestions from goals + material bank (needs M3, M6; optional for M4/M5)
+ └─ M9 LLM assistant (stage 1d): suggestions from goals + material bank
+
+MS2 Junior head
+ taxonomy editor, coach management, M6 curation, templates, cross-team views, rollover
+
+MS3 Athlete and guardian
+ M1 roster ─ athlete-level M2 and M3 ─ per-athlete attendance ─ M8 individual review
+ M7 Athlete app (view program, log progress) ─ guardian view
 ```
 
-### M0 - Foundation (P0, blocks everything)
+### M0 - Foundation (MS1, blocks everything)
 
 - **Purpose**: trustworthy identity and a safe place to store personal data.
 - **Scope**: real authentication (provider to choose in ADR), roles `admin`/`coach`/`athlete`, team-scoped authorization, Postgres with row-level security, audit log for reads and writes of athlete data, migration path for existing planner profiles.
@@ -280,64 +279,67 @@ M0 Foundation: identity, roles, teams, storage
 - **Depends on**: ADR on storage and auth; answers to N1, N3, N10.
 - **Done when**: a coach can only read their own teams' data (tested with RLS policies and negative tests); an athlete can only read their own rows; the old header fallback is removed from write routes.
 
-### M1 - Roster (P0)
+### M1 - Team and roster (blank team in MS1, roster in MS3)
 
 - **Purpose**: who is in which team.
 - **Capabilities**: create team (name, age group, season), add and remove athletes, assign coaches, invite athlete or guardian, archive a season.
 - **Data**: Team, AgeGroup, Athlete, Membership.
-- **MVP slice**: one coach, one team, ten athletes, entered manually.
+- **MS1 slice**: one coach creates one blank team; no athletes are stored.
+- **MS3 slice**: one team, ten athletes, entered manually.
 
-### M2 - Assessment and athlete profile (P0, the first real coaching feature)
+### M2 - Assessment (team level in MS1, athlete profile in MS3)
 
 - **Purpose**: record current level, strengths and weaknesses per athlete and for the team.
 - **Capabilities**: rate skills from the taxonomy on the agreed scale, mark strengths and development areas, add dated coach observations, view a profile with history, team overview (heat map of skill averages), coach-only notes.
 - **Data**: SkillCategory, Skill, Assessment (athlete, skill, level, date, assessor), Observation (note, date, visibility).
 - **Rules**: assessment history is kept, never overwritten; visibility is per field (N2).
-- **MVP slice**: fixed starter taxonomy, 1-5 scale, quick entry screen per athlete.
+- **MS1 slice**: fixed starter taxonomy (about 8-12 skills shown per age band, descriptor scale with "not assessed", one category per screen), quick entry screen for the team. Starter taxonomy and scale are proposals in `plan-002-expert-review.md` section 5; the scale and age bands are open (Q3). Assessment is done 2-3 times per season, tied to review dates; results are shown as strengths and next development areas (at most three each), with change since last time instead of ranking.
+- **MS3 slice**: the same entry per athlete.
 
-### M3 - Goals and targets (P0)
+### M3 - Goals and targets (team goals in MS1, individual goals in MS3)
 
 - **Purpose**: turn assessments into targets.
 - **Capabilities**: team season goals; individual development goals linked to skills; measurable target (skill from level X to Y, or a custom measure), deadline, review date, status (active, achieved, dropped), suggested goals from the weakest skills.
 - **Data**: Goal (scope team/athlete, skill, target, baseline, due date, status), GoalReview.
-- **MVP slice**: individual goals with a target level and a review date.
+- **MS1 slice**: team goals with a target level and a review date.
+- **MS3 slice**: individual goals.
 
-### M4 - Program planning (P0/P1, evolves existing issues #12-#14)
+### M4 - Program planning (MS1, evolves existing issues #12-#14)
 
 - **Purpose**: plan the season, cycles and weeks around the goals.
 - **Capabilities**: program per team and season; cycles/blocks with focus skills taken from team goals; weeks with theme and target focus; copy from a template or previous season; load indicators (sessions per week, minutes).
 - **Data**: Program, Cycle, Week (theme, focus skills, goal links).
 - **Rules**: age-appropriate volume checks once N8 is answered.
 
-### M5 - Session integration and attendance (P1)
+### M5 - Session integration and attendance (MS1; per-athlete attendance in MS3)
 
 - **Purpose**: sessions live in the program and track what actually happened.
 - **Capabilities**: create a session from a week (prefilled with focus), existing session builder and drill blocks, plan vs actual (what was run, changes), attendance per session, session notes.
 - **Data**: extends Session (week link, status planned/done), Attendance.
 - **Reuses**: the planner from plan-001.
 
-### M6 - Material bank and junior drill library (P0, parallel track)
+### M6 - Material bank and junior drill library (MS1 tagging and search, MS2 curation)
 
 - **Purpose**: make Hawks material findable by skill and age group.
 - **Capabilities**: junior metadata on drills (age range, skill tags from the taxonomy, group size, equipment, space, intensity, coaching points), skill and age filters in the catalog, link Drive material to drills and skills, import review flow for tagging legacy files, coverage report (skills with no drills).
 - **Data**: extends Drill (existing issues #9-#11 and #18 live here), DriveMaterialLink.
 - **Note**: this is also the grounding source for M9.
 
-### M7 - Athlete app (P1, first athlete-facing module)
+### M7 - Athlete app (MS3, last priority)
 
 - **Purpose**: athletes see what is expected and log how it went.
 - **Capabilities**: my next sessions and this week's focus, my goals and progress (visibility per N2), quick log after a session (attended, effort rating, short note, goal progress), optional homework items from the coach, installable on the phone, works offline and syncs later.
 - **Data**: AthleteLog (session, athlete, attended, RPE, note), GoalProgressEntry.
 - **Rules**: athletes only write their own logs; wording follows the positive-framing principle.
-- **MVP slice**: view the week and log attendance plus effort in two taps.
+- **MS3 slice**: view the week and log attendance plus effort in two taps.
 
-### M8 - Progress and review (P1/P2)
+### M8 - Progress and review (team goals in MS1, athlete review in MS3)
 
 - **Purpose**: close the loop: did the training move the numbers?
 - **Capabilities**: goal progress per athlete and team, reassessment prompts at review dates, attendance and effort trends, session load per week, review notes feeding the next cycle, print or share summary for athlete or guardian review conversations.
 - **Data**: derived views over Assessment, Goal, AthleteLog, Attendance; GoalReview.
 
-### M9 - LLM planning assistant (P2, behind a feature flag)
+### M9 - LLM planning assistant (MS1 stage 1d, behind a feature flag)
 
 - **Purpose**: help coaches plan faster from goals and the material bank.
 - **Capabilities**: suggest a week or session outline for given focus skills and age group; propose drills from the material bank for a gap; draft a cycle plan from team goals; explain why a drill fits.
@@ -348,6 +350,8 @@ M0 Foundation: identity, roles, teams, storage
   - Server-side calls only, with rate limits, cost cap, logging of prompts and outputs without personal data, and an evaluation set of example requests with expected qualities.
   - Provider is a pluggable adapter; default to the current Claude models when the provider is chosen (N6).
 - **Depends on**: M3, M6 and the skill taxonomy; optional for M4-M5.
+
+**LLM do-not list (from the coach and security reviews).** The assistant may draft a week or session from focus skills and age band, suggest alternatives given equipment, space and group size, produce a progression or regression of an existing drill, summarise team session notes into a cycle review, and draft parent messages for the coach to edit. It must not: set or recommend individual training loads, give injury, rehabilitation, nutrition or body advice, prescribe conditioning for young age bands, advise on selection or ranking, assess a child, or invent drills that are not in the bank. Every suggestion cites its source drill ids and is labelled "from the bank" or "generated"; the age-band filter is mandatory in retrieval; retrieved content is treated as untrusted data; output is validated against a schema and sanitised; the evaluation set includes bad requests (for example a 90-minute fitness session for under-9s) and prompt-injection cases.
 
 ### Cross-cutting concerns (apply to every module)
 
@@ -383,55 +387,129 @@ M0 Foundation: identity, roles, teams, storage
 
 Birth year or age band is stored instead of full birth date unless N1 says otherwise.
 
-## 13. Phasing (replaces the Phase 1-4 order for new work)
+Changes from the expert review (2026-11-05):
 
-Phase 0 (baseline) is unchanged and still comes first.
+- **One shape for team and athlete level.** `assessment(subject_type, subject_id, skill_stable_key, taxonomy_version, level, assessed_on, assessor_id)` and `goal(scope/subject_type, subject_id, ...)`. A database constraint or feature gate rejects `athlete` rows until MS3, so MS3 is additive.
+- **Versioned taxonomy.** `taxonomy_version(id, published_at)` and `skill(id, stable_key, version_id, ...)`; assessments, goals and drill tags reference the stable key plus the version in force; the rating scale and descriptors live per version. The MS1 seed ships as v1, one set per age band.
+- **Session ownership.** `Session.owner_user_id`, `team_id` (nullable), `week_id` (nullable), `planned_for` date. Who owns a session when the coach leaves is open (N11).
+- **Program structure.** Week is `(program_id, ordinal, starts_on nullable)`; cycles are an optional grouping with types (pre-season, season, tournament block, break, off-season); a cycle with no sessions is valid. Whether a season is one program or several is open (Q2).
+- **Audit**: write-audit (`audit_event`) from MS1 for team, program, role and auth changes; read-audit only from MS3.
 
-| Phase          | Modules                     | Outcome                                                                        | Gate                                             |
-| -------------- | --------------------------- | ------------------------------------------------------------------------------ | ------------------------------------------------ |
-| A - Foundation | M0, M1                      | Real sign-in, teams, roster, safe storage                                      | ADR accepted; N1, N3, N10 answered               |
-| B - Coach core | M2, M3, M6 (tagging starts) | Coach records strengths and weaknesses and sets goals; drills carry skill tags | Taxonomy and scale agreed (Q3); N2 answered      |
-| C - Planning   | M4, M5                      | Program and sessions linked to goals; attendance                               | Q2 answered; N8 if load checks wanted            |
-| D - Athlete    | M7                          | Athletes see their program and log progress                                    | Visibility rules (N2) and guardian decision (N1) |
-| E - Review     | M8                          | Goal reviews and progress dashboards                                           | Enough logged data from phases B-D               |
-| F - Assistant  | M9                          | LLM suggestions with coach approval                                            | N5-N7 answered; M6 content tagged                |
+## 13. Milestones and stages
 
-Pilot first: one team, from Phase A through C, before athletes are invited.
+Phase 0 (baseline) comes first. Then three milestones, in this order:
 
-## 14. Impact on the existing issue map
+| Milestone                      | Focus                                                                | Stages                                                                                                                                                                                                                                                                                                                                                                           | Outcome                                                                                                                                    | Gate                                                                                                                                                          |
+| ------------------------------ | -------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **MS1 - Coach**                | Coach settings and team-level coaching functions. No player data.    | 1a Foundation: M0 sign-in, roles, team-scoped access, storage; M1 blank team. 1b Coaching core: M2 team assessment and observations, M3 team goals, M6 junior tags and drill search. 1c Planning: M4 program, cycles, weeks; M5 sessions from the week and a team-level session record. 1d Assistant: M9 LLM planning assistant (last, can slip without blocking the milestone). | One coach and one team can assess the team, set goals, plan a program and sessions, and find drills by skill and age. Pilot with one team. | 1a: storage and auth ADR accepted, N10 answered. 1b: Q1 age groups, Q3 starter taxonomy and scale. 1c: Q2 program shape; N8 if load checks wanted. 1d: N5-N7. |
+| **MS2 - Junior head**          | Club-level coordination                                              | Taxonomy editor, coach management, material curation (M6 admin side), program templates per age group, cross-team views and coverage, season rollover                                                                                                                                                                                                                            | Consistent skills language, access and content across teams                                                                                | MS1 in real use                                                                                                                                               |
+| **MS3 - Athlete and guardian** | All data about named athletes, and the athlete and guardian surfaces | 3a Athlete data: M1 roster, athlete-level M2 and M3, per-athlete attendance, M8 individual review, data export and erasure. 3b Athlete app: M7 view the program and log progress. 3c Guardian: schedule view, consent and data access                                                                                                                                            | Individual development tracked; athletes see their program and log progress                                                                | N1 privacy, N2 visibility, N3 sign-in, N4 logging, guardian decision                                                                                          |
 
-Issues #3-#19 were created before this extension and have **not been changed**. Proposed handling, to be confirmed:
+The pilot is MS1 with one coach and one team. Athlete data is not introduced before MS3.
 
-| Existing issue                                                   | Proposal                                                        |
-| ---------------------------------------------------------------- | --------------------------------------------------------------- |
-| #3-#7 (Phase 0 hygiene, #5 lint is done in code)                 | Keep                                                            |
-| #8 personas and journeys                                         | Keep, expand to athletes and guardians (this plan's section 10) |
-| #9 drill junior metadata, #10 catalog filters, #11 editor fields | Keep, move under M6; use the agreed taxonomy                    |
-| #12 program model/API, #13 program list UI, #14 week view        | Keep, move under M4; depend on M1-M3                            |
-| #15 attach sessions to weeks, #17 print/share program            | Keep, move under M5/M8                                          |
-| #16 skill coverage summary                                       | Move under M6 (material coverage)                               |
-| #18 starter drills and templates                                 | Keep, under M6                                                  |
-| #19 ADR storage                                                  | **Raise to P0**, widen to storage plus authentication (F1, F2)  |
+## 14. Issue map by milestone
 
-New issues needed (not created yet): M0 auth and RLS foundation, M1 roster, M2 assessment, M3 goals, M5 attendance, M7 athlete app, M8 review, M9 assistant, and a design issue for the skill taxonomy. These should be drafted after the open questions in section 8 are answered, so acceptance criteria are not invented.
+Issues #3-#19 predate the milestones and have **not been changed** in GitHub. Placement is in section 5. Proposed handling, to be confirmed:
+
+| Existing issue                                                   | Proposal                                                                            |
+| ---------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| #3-#7 (Phase 0 hygiene; #5 lint is done in code)                 | Keep                                                                                |
+| #8 personas and journeys                                         | Keep, expand to the three milestones' user groups (section 10, `docs/USE_CASES.md`) |
+| #9 drill junior metadata, #10 catalog filters, #11 editor fields | Keep, MS1 1b (M6); use the agreed taxonomy                                          |
+| #12 program model/API, #13 program list UI, #14 week view        | Keep, MS1 1c (M4); depend on the blank team and team goals                          |
+| #15 attach sessions to weeks, #17 print/share program            | Keep, MS1 1c (M5)                                                                   |
+| #16 skill coverage summary                                       | Move to MS2 (cross-team coverage)                                                   |
+| #18 starter drills and templates                                 | Split: starter drills MS1 1b, templates per age group MS2                           |
+| #19 ADR storage                                                  | **Raise to P0**, MS1 1a, widened to storage plus authentication (F1, F2)            |
+
+New issues needed (not created yet), by milestone:
+
+- **MS1**: M0 authentication and team-scoped access with RLS, M1 blank team, skill taxonomy design (starter set, scale), M2 team assessment, M3 team goals, M5 team-level session record, M9 assistant (1d).
+- **MS2**: taxonomy editor, coach management, material curation, cross-team view, season rollover.
+- **MS3**: M1 roster, athlete-level assessment and goals, per-athlete attendance, M7 athlete app, M8 individual review, guardian view, data export and erasure.
+
+Draft the MS1 issues after the use cases in `docs/USE_CASES.md` are accepted, so acceptance criteria are not invented. Do not create MS3 issues yet.
 
 ## 15. Risks
 
-| Risk                                                        | Impact | Mitigation                                                            |
-| ----------------------------------------------------------- | ------ | --------------------------------------------------------------------- |
-| Personal data of minors handled without a clear legal basis | High   | Answer N1 first; data minimisation; RLS and audit from day one        |
-| Header-based auth reused for athletes                       | High   | M0 before any athlete data; remove header role fallback               |
-| Scope too large for a volunteer-run club                    | High   | Strict module gates; pilot with one team; each module shippable alone |
-| Coaches find assessment too slow                            | Medium | Quick-entry screens, defaults, test with a real coach in Phase B      |
-| Taxonomy disputes delay everything                          | Medium | Ship a fixed starter set, versioned, editable later                   |
-| LLM output of poor quality or unsafe for juniors            | Medium | Retrieval from approved material, coach approval, evaluation set      |
-| Airtable-to-Postgres migration cost                         | Medium | New modules start on Postgres; migrate drills in M6                   |
-| Athlete labels harm motivation                              | Medium | Positive framing, visibility rules (N2), coach-only notes             |
+| Risk                                                        | Impact   | Mitigation                                                                                       |
+| ----------------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------ |
+| Personal data of minors handled without a clear legal basis | High     | Answer N1 first; data minimisation; RLS and audit from day one                                   |
+| Header-based auth reused for coaching or athlete data       | High     | M0 in stage 1a before any new data; remove header role fallback                                  |
+| Scope too large for a volunteer-run club                    | High     | Strict module gates; pilot with one team; each module shippable alone                            |
+| Coaches find assessment too slow                            | Medium   | Quick-entry screens, defaults, test with a real coach in stage 1b                                |
+| Taxonomy disputes delay everything                          | Medium   | Ship a fixed starter set, versioned, editable later                                              |
+| LLM output of poor quality or unsafe for juniors            | Medium   | Retrieval from approved material, coach approval, evaluation set                                 |
+| Airtable-to-Postgres migration cost                         | Medium   | New modules start on Postgres; migrate drills in M6                                              |
+| Athlete labels harm motivation                              | Medium   | Positive framing, visibility rules (N2), coach-only notes                                        |
+| Spoofable planner identity reaches coaching data            | Critical | Hard gate before stage 1a; forged-header test; see expert review section 3                       |
+| Free-text notes hold names or health information in MS1     | High     | Field warning, exclusion from LLM prompts, N12 decision                                          |
+| MS1 scope too large for one volunteer club                  | High     | Program planning does not require goals; offline limited to draft-and-retry; read-audit deferred |
+| Relative-age and labelling bias in athlete ratings (MS3)    | High     | No rankings or sorted lists; compare to own previous rating; birth quarter shown to coach        |
+| LLM suggests unsuitable load or invents drills              | High     | Do-not list, mandatory age filter, citations, evaluation set                                     |
 
 ## 16. Next steps
 
-1. Product owner answers or deprioritises the questions in sections 6 and 8 (blocking ones first: N1, N2, N3, Q3, N10).
-2. Decide the issue-map changes in section 14; then create the new issues.
-3. Write the storage and authentication ADR (#19, now P0) and spike a Neon (Managed Better Auth + RLS) proof for team-scoped reads.
-4. Draft the skill taxonomy and rating scale with a coach (input to M2 and M6).
-5. Prototype the M2 quick-entry screen with a real coach before building the rest of the module.
+1. Product owner reviews `docs/USE_CASES.md` and answers the questions blocking MS1 first: Q1 (age groups), Q3 (starter taxonomy and scale), N10 (scale of the first rollout); then Q2 and, for stage 1d, N5-N7. MS3 questions (N1-N4, guardian) can wait.
+2. Decide the issue-map changes in section 14, create the three GitHub milestones, then draft the MS1 issues.
+3. Write the storage and authentication ADR (#19, proposed P0) and spike a Neon (Managed Better Auth + RLS) proof for team-scoped reads.
+4. Draft the starter skill taxonomy and rating scale with a coach (input to M2 and M6).
+5. Prototype the M2 team assessment quick-entry screen with a real coach before building the rest of MS1.
+6. Product owner decides the review proposals in Part IV and answers the new questions N11-N20 (`plan-002-expert-review.md` section 7).
+7. Add the pre-1a hard-gate work (identity, headers, rate limiting, CI checks) as issues once the plan is accepted.
+
+---
+
+# Part III - Product owner decisions (2026-11-05)
+
+These come from the review of `docs/USE_CASES.md` and remain the record of the decisions. Sections 1-16 were aligned to them on 2026-11-05; if anything still conflicts, **this part wins**.
+
+## 17. Decisions
+
+| #   | Decision                                                                                                                         | Effect                                                                                    |
+| --- | -------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| D1  | MS1 creates **one blank team with no players**. Coaching functions are built and tried before any player data exists.            | M1 starts as "team only". Roster and athletes move out of the MVP.                        |
+| D2  | **Coaching functions first**, at team level: team assessment, team observations, team goals, program and sessions, drill search. | M2 and M3 are built at team level first; the athlete level comes after.                   |
+| D3  | **Junior head / admin is Milestone 2**, after the coaching core.                                                                 | Taxonomy editing, coach management, templates and cross-team views move to a later phase. |
+| D4  | **Athlete and guardian is Milestone 3**, the last priority.                                                                      | M7 and guardian features come last.                                                       |
+
+## 18. What this changes
+
+- **No personal data about minors in MS1.** N1 (privacy), N2 (visibility) and N3 (athlete sign-in) do not block MS1. They block only the athlete-data phases. Coaches are still real users, so authentication and team-scoped access (M0) stay in the MVP; the storage ADR (#19) is still needed, but the pressure is lower and the pilot can start on the proof of concept.
+- **Taxonomy without an admin UI.** The assessment still needs skills and a rating scale (Q3). For MS1 a fixed starter taxonomy is seeded by the developer; coach or admin editing comes later **[confirm]**.
+- **Coach accounts without an admin UI.** For MS1, coaches are added by the developer **[confirm]**.
+- **Material tagging by the existing editor role.** The editor flows already exist; the admin role is not needed for M6 in the MVP.
+- **Program planning (M4) moves into MS1** because it is coaching functionality that needs no player data **[confirm]**.
+- **Attendance**: MS1 records that a session happened and a head count (no names). Per-athlete attendance comes with the roster.
+
+## 19. Milestones
+
+The milestone table is in **section 13**, which now holds the canonical version. Summary: MS1 Coach, MS2 Junior head, MS3 Athlete and guardian. The pilot is MS1 with one coach and one team.
+
+## 20. Impact on the other sections
+
+- **Section 8 (open questions)**: N1-N4 and the guardian decision gate MS3, not the pilot. Q1 and Q3 gate stage 1b, Q2 gates stage 1c, N5-N7 gate stage 1d.
+- **Section 11 (modules)**: M1 and M2/M3 each have two stages (team level, then athlete level). M7 is the last module and belongs to MS3.
+- **Section 14 (issue map)**: existing issues stay as drafted. Issues for athlete-level work (roster, individual assessment, athlete app) should not be created yet; M0 and team-level M1-M3 should be drafted first once the use cases are accepted.
+- **Section 15 (risks)**: the privacy risk is deferred rather than removed; the scope risk falls because the pilot is coach-only.
+
+---
+
+# Part IV - Expert review outcomes (2026-11-05)
+
+Four independent reviews (solution architect, UI/UX specialist, IT security specialist, professional sport coach) were consolidated in [plan-002-expert-review.md](./plan-002-expert-review.md). That document holds the findings register, the hard gates per milestone, the proposed starter taxonomy and the new open questions. Summary of what changed in this plan:
+
+- **Hard gates** per milestone are now part of the plan (review section 3). The first: no new coaching data on header-based identity; real authentication, team-scoped authorization, security headers, rate limiting and blocking CI checks before MS1 stage 1a.
+- **Data model** (section 12): polymorphic assessment and goal, versioned taxonomy, session ownership, flexible program structure.
+- **ADR** (section 9a): authorization model, RLS mechanics, migration path, environments.
+- **Assessment design** (M2): descriptor scale, capped skills per age band, psychosocial category, cadence, positive framing.
+- **LLM** (M9): do-not list and guardrails.
+- **Use cases**: UC-C-17 to UC-C-27 added for real-season needs (matches, tournaments, tryouts, injuries and absences, parent communication, team values, multi-team coaches, drop-out, cancelled sessions, handover, end-of-season review).
+
+**Proposals awaiting the product owner** (not decisions):
+
+1. **Re-sequence MS1** so value arrives earlier and dependencies are honest: 1a Foundation plus drill migration; 1b material bank tags and search; 1c program and session planning (works without goals); 1d team assessment and team goals; 1e LLM assistant. The current order in section 13 stays in force until this is accepted.
+2. Raise #19 (storage and auth ADR) to P0 and make #4 and #6 blockers for stage 1a.
+3. Adopt the descriptor scale and starter taxonomy as the basis for Q3, subject to club validation.
+4. MS1 offline scope: drafts survive reload and saves retry; no background sync.
+5. Keep free-text notes out of the LLM and warn against names in MS1.

@@ -250,3 +250,41 @@ If icons are added in future, prefer inline SVG over icon fonts.
 - Screen reader: `aria-label` on icon-only buttons
 - Keyboard navigation: Tab order follows visual order
 - No auto-playing media
+
+---
+
+## Known Gaps and Additions (expert review, 2026-11-05)
+
+Findings from the UI/UX review. Contrast ratios are the reviewer's estimates and must be re-measured with a tool before changing tokens.
+
+### Accessibility gaps
+
+| Area            | Gap                                                                                                                      | Direction                                                               |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------- |
+| Contrast        | `#9CA3AF` secondary text on white (about 2.5:1), white on `#22C55E` (about 2.3:1), `#EF4444` text on white (about 3.8:1) | Darker text tokens; do not use these pairs for body text                |
+| Dark mode       | Not specified in this document although the project requires it                                                          | Define dark tokens and test every component                             |
+| Reduced motion  | No rule (skeleton pulse)                                                                                                 | Respect `prefers-reduced-motion`                                        |
+| Error feedback  | Toasts auto-dismiss in 3 s                                                                                               | Errors persist or appear as inline alerts                               |
+| Icons           | Emoji icons are inconsistent for screen readers                                                                          | `aria-hidden` plus a text label                                         |
+| Targets         | Some actions are 40 px                                                                                                   | 48 px minimum; 56 px on quick-capture screens                           |
+| Rating controls | Colour-only buttons                                                                                                      | Radio group with text labels, visible focus                             |
+| Route change    | Hash router does not move focus                                                                                          | Move focus to the page heading; `aria-live` for save state; `lang="fi"` |
+| Testing         | No automated accessibility check                                                                                         | Add axe to CI                                                           |
+
+### Sync and conflict pattern (shared component)
+
+One persistent, non-modal chip on capture screens: saved, saving, offline (will save later), conflict. Rules: never block capture, never discard local input silently. Conflict screen offers "keep mine", "use theirs", "see differences". MS1 offline scope is draft-and-retry (see NFR-O04).
+
+### Finnish glossary (suggested)
+
+| Term          | Meaning     | Note                                            |
+| ------------- | ----------- | ----------------------------------------------- |
+| harjoite      | drill       | used for the library item                       |
+| harjoitus     | session     | wireframes currently mix harjoite and harjoitus |
+| viikko, jakso | week, cycle |                                                 |
+| taito         | skill       |                                                 |
+| tavoite       | goal        |                                                 |
+| arviointi     | assessment  |                                                 |
+| joukkue       | team        |                                                 |
+
+Use correct diacritics (the wireframes drop them in places) and keep all copy in one file. Sinä or te is open (N17); sinä is common for sports volunteers.

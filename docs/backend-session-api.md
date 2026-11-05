@@ -1,6 +1,6 @@
 # Backend Session API
 
-**Last Updated**: 2026-02-28
+**Last Updated**: 2026-11-05
 
 This document describes the implemented backend contract for planner sessions, draft recovery, and shareable read-only session links.
 
@@ -20,6 +20,7 @@ Temporary planner auth contract:
 
 - planner routes resolve identity from `x-planner-user-id` and optional `x-planner-email`
 - role metadata may be loaded from Airtable `Planner Profiles`; when that repository is not configured, `x-planner-role` remains the temporary fallback
+- this header-based identity is an interim editor-test mechanism, not authentication; it is to be replaced by real authentication before coaching data is stored (see `../plans/plan-002-junior-training-programs.md`, finding F1)
 - allowed authenticated roles are `viewer`, `editor`, and `admin`
 - owner checks use canonical `ownerUserId`
 - public shared-session reads must not require planner headers
@@ -139,7 +140,7 @@ Isolation rules:
 
 - Airtable field names such as `App ID`, `Blocks JSON`, and `Session App ID` stay inside the adapter
 - route handlers and clients only see canonical `Session`, `SessionSummary`, `SessionShareResult`, and `SharedSessionView` shapes
-- replacing Airtable with Supabase should only require a new repository adapter with the same repository methods
+- replacing Airtable with Postgres (Neon proposed) should only require a new repository adapter with the same repository methods
 
 Current Airtable environment variables:
 

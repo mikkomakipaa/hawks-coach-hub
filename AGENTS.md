@@ -242,10 +242,11 @@ Legacy note: `docs/archive/` is reference only. If it conflicts with top-level `
 
 Never:
 
-1. Change API contracts incompatibly or assume business rules (age groups, program shape, roles); ask or record an open question in the plan.
-2. Commit secrets or copy `.env` values into the repo.
-3. Remove `AIDEV-` comments.
-4. Edit existing migration files (if migrations are added).
+1. Add routes that store or read coaching data using the header-based planner identity (`x-planner-*`); real authentication comes first (see `plans/plan-002-expert-review.md`).
+2. Change API contracts incompatibly or assume business rules (age groups, program shape, roles); ask or record an open question in the plan.
+3. Commit secrets or copy `.env` values into the repo.
+4. Remove `AIDEV-` comments.
+5. Edit existing migration files (if migrations are added).
 
 ## Skills
 

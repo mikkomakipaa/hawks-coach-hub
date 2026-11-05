@@ -57,7 +57,7 @@ The frontend now depends on these canonical types:
 - `PlannerProfile`
 - `PlannerPermissions`
 
-If Airtable is replaced by Supabase later, the intended change surface is:
+If Airtable is replaced by Postgres (Neon proposed) later, the intended change surface is:
 
 1. Backend repository/storage adapters
 2. Backend route internals if persistence mechanics change

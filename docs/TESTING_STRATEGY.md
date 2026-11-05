@@ -1,7 +1,7 @@
 # Testing Strategy
 
 **Project**: Hawks Coach Hub
-**Last Updated**: 2026-02-28
+**Last Updated**: 2026-11-05
 
 ---
 
@@ -179,6 +179,10 @@ Tests run on every push via GitHub Actions (`.github/workflows/ci.yml`):
 4. `npm run build` — Production build check
 5. Playwright E2E — against built/preview server (if configured)
 
+Current status (2026-11-05): `npm run typecheck` passes, `npm run test:run` runs 23 files / 163 tests with Vitest 5.1, `npm run lint` is clean and enforced by the pre-commit hook. Playwright specs exist in `e2e/` but a full run in CI has not been verified (tracked in a GitHub issue).
+
+Planned for the coaching milestones: authorization tests per module (a coach cannot read another team's data, spoofed identity headers are rejected), database row-level-security policy tests against a Neon branch, and a privacy check that no named-athlete fields exist before MS3.
+
 Current hardening note:
 
 - Playwright performance coverage should stay dependency-light. Do not rely on optional accessibility packages unless they are installed in `package.json`.
@@ -198,7 +202,7 @@ npm run test
 npm run test:coverage
 
 # Single test file
-npm run test -- src/utils/search.test.ts
+npx vitest run src/utils/search.test.ts
 
 # E2E tests
 npm run test:e2e

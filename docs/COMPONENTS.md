@@ -1,7 +1,7 @@
 # Component Reference
 
 **Project**: Hawks Coach Hub
-**Last Updated**: 2026-02-28
+**Last Updated**: 2026-11-05
 **Purpose**: Document all TypeScript UI modules and their APIs
 
 ---
@@ -101,7 +101,7 @@ Own the persistence boundary for structured planner/CMS data.
 
 **Boundary rule**:
 
-- If Supabase replaces Airtable later, these modules change first. Route handlers, shared domain types, and frontend services should not need contract redesign.
+- If Postgres (Neon proposed) replaces Airtable later, these modules change first. Route handlers, shared domain types, and frontend services should not need contract redesign.
 
 ---
 
@@ -317,7 +317,7 @@ Renders normalized import-draft content for human review.
 **Component rule**:
 
 - Components receive canonical app data and callbacks.
-- Components do not know whether persistence currently uses Airtable or later uses Supabase.
+- Components do not know whether persistence currently uses Airtable or later uses Postgres.
 
 ---
 

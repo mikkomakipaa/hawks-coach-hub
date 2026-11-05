@@ -1,7 +1,7 @@
 # Non-Functional Requirements (NFR)
 
 **Project**: Hawks Coach Hub
-**Last Updated**: 2026-02-28
+**Last Updated**: 2026-11-05
 
 ---
 
@@ -51,11 +51,29 @@
 **Requirement**: Service account has only Viewer permission on Hawks Drive folder
 **Measure**: Google Cloud IAM review; test that write operations return 403
 
-### NFR-S03: No User Data Stored
+### NFR-S03: No User Data Stored in Browse Mode
 
 **Priority**: P1
 **Requirement**: Anonymous browse mode stores no user identity. If planner/CMS auth is introduced, identity and session data must be limited to authenticated planner/editor flows and handled according to the chosen backend auth model.
 **Measure**: Browser DevTools inspection by route/mode; backend auth/session review
+
+### NFR-S04: Real Authentication for Coaching Data (Planned, MS1)
+
+**Priority**: P0 for MS1
+**Requirement**: Coaching data (teams, assessments, goals, programs) is accessed only by authenticated users. The header-based planner identity (`x-planner-*`, client-supplied role fallback) must not guard this data.
+**Measure**: API tests that unauthenticated and spoofed-header requests are rejected
+
+### NFR-S05: Team-Scoped Authorization (Planned, MS1)
+
+**Priority**: P0 for MS1
+**Requirement**: A coach can read and write only their own teams' data; enforced in the database with row-level security as well as in the API.
+**Measure**: Negative tests: a coach cannot read or modify another team's rows
+
+### NFR-S06: Data About Minors (Planned, MS3)
+
+**Priority**: P0 before any athlete data is stored
+**Requirement**: Data minimisation, a documented legal basis and guardian consent where required, retention and erasure support, visibility rules, audit log of reads and writes, and no personal athlete data sent to an LLM.
+**Measure**: Privacy review and documented answers to the open questions in the plan before MS3 starts
 
 ---
 
@@ -120,8 +138,8 @@
 ### NFR-M02: Lint Clean
 
 **Priority**: P1
-**Requirement**: Zero ESLint warnings on every build
-**Measure**: `npm run lint` in CI
+**Requirement**: Zero ESLint errors and warnings (`--max-warnings 0`); the pre-commit hook enforces this on staged files. Status 2026-11-05: clean
+**Measure**: `npm run lint` in CI and the commit hook
 
 ### NFR-M03: Test Coverage
 
@@ -156,7 +174,42 @@
 
 **Priority**: P1
 **Requirement**: Any database/auth/storage backend for planner/CMS remains within a low-cost tier appropriate for a coaching staff product.
-**Measure**: Airtable during MVP, then the chosen long-term backend usage dashboard after migration
+**Measure**: Airtable for current drill content, then the Postgres provider's usage dashboard (Neon proposed)
+
+---
+
+## Planned Gates from the Expert Review (2026-11-05)
+
+Source and full register: `../plans/plan-002-expert-review.md`. These are requirements to be met by the milestone named; none is implemented yet.
+
+### Security (before MS1 stage 1a unless stated)
+
+- **NFR-S07 Identity**: no header-based identity or client-supplied role on any route that touches coaching data; forged-header requests return 401. Measure: automated negative tests.
+- **NFR-S08 Write authorization**: write routes require a coach role plus a team or ownership check; every route has a deny-by-default test. Measure: per-route authorization tests.
+- **NFR-S09 Security headers**: CSP without unsafe-inline scripts, HSTS, nosniff, frame-ancestors, Permissions-Policy. Measure: header check in CI. Also restrict CORS on `api/drive.js` to the app origin.
+- **NFR-S10 Rate limiting**: per IP and per user, with body-size limits, on auth, write and (later) LLM routes.
+- **NFR-S11 Session handling**: HttpOnly, Secure, SameSite cookies, CSRF protection on state-changing routes, logout and revocation, short-lived tokens.
+- **NFR-S12 Tenant isolation in the database**: row-level security with cross-tenant negative tests in CI and a "no table without RLS" check.
+- **NFR-S13 CI hygiene**: blocking dependency audit (no `|| echo`), Dependabot for root, `api/` and Actions, secret scanning, pinned Actions, least-privilege workflow permissions, supported Node versions.
+- **NFR-S14 Share links**: explicit field allowlist, expiry (proposal: 90 days), revocation, no-store and noindex headers, rate limiting; never used for athlete-linked data.
+- **NFR-S15 Audit**: append-only write-audit from MS1 (team, program, role, auth events), no content in the log; read-audit from MS3. Admin MFA decision before MS2.
+- **NFR-S16 Privacy for the pilot**: the club is identified as controller, coaches get a privacy notice and a processing record exists, a processor agreement is in place if the developer is a processor. MS1 free-text notes warn against names and health information.
+- **NFR-S17 Minors' data (MS3)**: DPIA, lawyer-verified lawful basis and consent age, retention schedule, tested export and erasure including backups and branches, synthetic data only in previews. To be verified with counsel; not assumed.
+- **NFR-S18 LLM guardrails (stage 1d)**: provider terms without training on inputs, no names, emails or free-text notes in prompts, retrieved content treated as untrusted, validated and sanitised output, cost cap, rate limit, kill-switch, injection and bad-request evaluation set.
+
+### Accessibility and usability
+
+- **NFR-A01**: text contrast at least 4.5:1; the design tokens flagged in `DESIGN_SYSTEM.md` are re-measured and fixed.
+- **NFR-A02**: dark mode and `prefers-reduced-motion` supported; error messages persist (no auto-dismissing error toasts); save state announced with `aria-live`; focus moves to the page heading on route change.
+- **NFR-A03**: touch targets 48 px minimum, 56 px on quick-capture screens.
+- **NFR-A04**: every MS1 screen specifies empty, loading, error, no-permission and offline states.
+
+### Operations and pilot
+
+- **NFR-O01**: `/api/healthz`, structured JSON logs with a request id and no personal data.
+- **NFR-O02**: backup and restore targets for the Postgres database (point-in-time-restore window) with a restore drill before MS3; EU region; breach process agreed with counsel.
+- **NFR-O03 Pilot exit criteria (proposal)**: one coach and one team use MS1 for six weeks, with a minimum number of sessions planned (to be set), and the plan's four product metrics measured.
+- **NFR-O04 Offline scope (MS1)**: drafts survive reload and saves retry; no background sync.
 
 ---
 

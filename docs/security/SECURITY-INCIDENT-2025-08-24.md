@@ -26,7 +26,7 @@ A Google Cloud service account key file was discovered exposed in the working di
 
 - **Service Account:** coach-hub-v2@coach-hub-469817.iam.gserviceaccount.com
 - **Project:** coach-hub-469817
-- **Private Key ID:** 02211c9252a27ff958905d75fcac30313a97aa93
+- **Private Key ID:** [redacted 2026-11-05]
 - **Exposure Location:** Working directory only
 - **Git Exposure:** NONE (verified clean history)
 

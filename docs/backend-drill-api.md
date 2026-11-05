@@ -1,6 +1,6 @@
 # Backend Drill API
 
-**Last Updated**: 2026-02-28
+**Last Updated**: 2026-11-05
 
 This document describes the implemented backend contract for structured drills and the temporary Airtable adapter boundary.
 
@@ -18,6 +18,7 @@ Temporary editor auth contract:
 
 - editor routes currently resolve planner identity from `x-planner-user-id` and optional `x-planner-email`
 - role metadata may be loaded from Airtable `Planner Profiles`; when that repository is not configured, `x-planner-role` remains the temporary fallback
+- this header-based identity is an interim editor-test mechanism, not authentication; it is to be replaced by real authentication before coaching data is stored (see `../plans/plan-002-junior-training-programs.md`, finding F1)
 - drill draft creation and updates require `editor` or `admin`
 - drill publication is an `admin` governance action
 - public coach-facing reads must not require those headers
@@ -113,7 +114,7 @@ Isolation rules:
 
 - Airtable field names such as `App ID`, `Slug`, `Drill App ID`, and `Sort Order` stay inside the adapter
 - route handlers and clients only see canonical `Drill`, `DrillDetail`, and `DrillAttachment` shapes
-- replacing Airtable with Supabase should only require a new repository adapter with the same repository methods
+- replacing Airtable with Postgres (Neon proposed) should only require a new repository adapter with the same repository methods
 
 Current Airtable environment variables:
 
