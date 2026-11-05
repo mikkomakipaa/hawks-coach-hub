@@ -26,6 +26,7 @@ Start here. These documents describe the current product and where it is heading
 - `docs/*.md` - authoritative architecture, data model, UX, quality and API docs.
 - `docs/guides/` - how-to guides (user guide, search, testing, mobile, performance). Written earlier; check against the code before relying on details.
 - `docs/security/` - checklist, action items, review and incident reports.
+- `docs/adr/` - architecture decision records (ADR-001: storage and authentication, proposed).
 - `docs/archive/` - historical material (completed tasks 009-028, old feature notes). Not guidance.
 - Plans live in `/plans`.
 
