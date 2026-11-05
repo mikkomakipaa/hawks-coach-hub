@@ -4,7 +4,7 @@
   "description": "Google Drive API with Service Account for Hawks Training Materials",
   "main": "drive.js",
   "dependencies": {
-    "googleapis": "^128.0.0"
+    "googleapis": "^189.0.0"
   },
   "engines": {
     "node": ">=18"
