@@ -61,7 +61,21 @@ async function request(n) {
   }
 }
 
+async function assertRestrictedRole() {
+  const { rows } = await pool.query(
+    'SELECT current_user AS who, r.rolbypassrls AS bypass, r.rolsuper AS super FROM pg_roles r WHERE r.rolname = current_user',
+  );
+  const { who, bypass, super: isSuper } = rows[0];
+  console.log(`Connected as role "${who}" (bypassrls=${bypass}, superuser=${isSuper})`);
+  if (bypass || isSuper || who !== 'app_runtime') {
+    console.error('ABORT: this connection is not the restricted app_runtime role, so RLS is not enforced and the result would be meaningless. Use the app_runtime connection string.');
+    await pool.end();
+    process.exit(2);
+  }
+}
+
 try {
+  await assertRestrictedRole();
   const t0 = Date.now();
   await Promise.all(Array.from({ length: TASKS }, (_, i) => request(i)));
   const ms = Date.now() - t0;
