@@ -409,7 +409,11 @@ The pilot is MS1 with one coach and one team. Athlete data is not introduced bef
 
 ## 14. Issue map by milestone
 
-Issues #3-#19 predate the milestones and have **not been changed** in GitHub. Placement is in section 5. Proposed handling, to be confirmed:
+**Status 2026-11-05:** milestones `MS1 - Coach`, `MS2 - Junior head` and `MS3 - Athlete and guardian` exist in GitHub, old `phase:*` labels are removed, and #3-#5 and #7 are closed. #16 moved to MS2, #18 split (starter drills stay #18 in MS1; templates are #30 in MS2), #19 is P0.
+
+New MS1 issues: #21 sign-in, #22 team-scoped authorization and RLS, #23 security hardening, #24 blank team, #25 taxonomy and scale, #26 team assessment, #27 team goals, #28 team session record, #29 LLM assistant (1d). New MS2 issues: #30 templates, #31 taxonomy editor, #32 coach and access management, #33 curation, #34 cross-team view and rollover. No MS3 issues yet.
+
+Original proposed handling, now applied:
 
 | Existing issue                                                   | Proposal                                                                            |
 | ---------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
