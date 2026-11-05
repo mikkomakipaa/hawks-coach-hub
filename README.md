@@ -31,11 +31,11 @@ The UI is Finnish-first and designed for phones and tablets at the rink (375px, 
 
 ```bash
 npm install
-cp .env.example .env          # fill in values, never commit .env
+export GOOGLE_SERVICE_ACCOUNT_KEY_FILE="$HOME/.config/hawks-coach-hub/<key>.json"   # or add it to ~/.zshrc
 npm run dev                   # http://localhost:8000
 ```
 
-Local development needs server-side credentials for Google Drive and Airtable. Export `GOOGLE_SERVICE_ACCOUNT_KEY_FILE` in your shell or set it in `.env`. Keep key files outside the repository. See [planner API boundaries](docs/planner-api-implementation-boundaries.md) for the Airtable and auth variables.
+Local development needs server-side credentials for Google Drive and Airtable. The dev server does not load `.env` for the API proxy, so export `GOOGLE_SERVICE_ACCOUNT_KEY_FILE` in your shell (for example in `~/.zshrc`) and keep key files outside the repository. `.env.example` lists the variable names for deployment settings. See [planner API boundaries](docs/planner-api-implementation-boundaries.md) for the Airtable and auth variables.
 
 ## Scripts
 
