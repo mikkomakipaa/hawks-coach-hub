@@ -85,5 +85,10 @@
   "dependencies": {
     "better-sqlite3": "^11.10.0",
     "minisearch": "^7.2.0"
+  },
+  "overrides": {
+    "@typescript-eslint/typescript-estree": {
+      "minimatch": "^11.0.4"
+    }
   }
 }
