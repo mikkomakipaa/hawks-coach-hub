@@ -103,6 +103,44 @@ Follows CORE_ARCHITECTURE Decision 13:
 - After cut-over, Airtable stays read-only for one release and the migration script is re-runnable.
 - If managed auth is abandoned, switch to B or C: domain tables reference the auth user id only, so users are re-imported rather than the schema changed.
 
+## 8a. Free tier for testing and the single-team pilot
+
+Decision: use the Neon **Free** plan for development, the spike and the MS1 single-team pilot. Limits below were read from neon.com on 2026-11-05 and must be rechecked before relying on them.
+
+| Free limit                                                          | Impact on this project                                                             |
+| ------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| 100 CU-hours per project per month; scale-to-zero after 5 min idle  | Enough for one team. Compute is suspended until the next period if exhausted.      |
+| 1 GB storage per project; writes blocked above it                   | MS1 data is team-level text and fits many times over. Alert at 70%.                |
+| 5 GB egress per month                                               | Not a concern.                                                                     |
+| 10 branches per project; branch creation blocked at the limit       | CI deletes the PR branch when the PR closes; a weekly job removes orphan branches. |
+| History window 6 hours (1 GB cap); no scheduled snapshots, 1 manual | **Not a sufficient backup.** See the nightly dump below.                           |
+| Managed Better Auth up to 60,000 MAU per project                    | No concern.                                                                        |
+| No IP allow-list, no Private Networking, community support          | Accepted for the pilot; security relies on RLS, auth and secrets.                  |
+| DPA availability on Free not stated; SOC 2 listing inconsistent     | Acceptable while MS1 holds no named-athlete data. Verify before the pilot.         |
+
+Required mitigations:
+
+1. **Nightly logical backup**: a scheduled GitHub Actions job runs `pg_dump` against the direct URL and stores the encrypted dump outside Neon (private storage owned by the club or developer), keeping 30 days. A restore into a scratch branch is rehearsed once before real data is entered.
+2. **Cold start**: the first request after idle wakes the compute. Spike check 10 records the delay. The UI shows a loading state; a keep-warm ping is only added if the delay hurts at the rink, since it consumes CU-hours.
+3. **Quota watch**: a monthly check of CU-hours and storage on the project page; alert before 80%.
+4. **Autoscaling**: the project was created with a 0.25 CU maximum on Free; the spike measures whether that is enough for the pooled `SET LOCAL` transaction pattern.
+
+Upgrade triggers (move to a paid plan before any of these):
+
+- Any data about named athletes (MS3), which also needs a signed DPA and a longer history window.
+- A second team in real use or a CU-hour quota breach.
+- A recovery requirement longer than the 6-hour window that the nightly dump cannot meet.
+
+Environment created for the spike (2026-11-05):
+
+| Item     | Value                                                                                  |
+| -------- | -------------------------------------------------------------------------------------- |
+| Project  | `hawks-coach-hub` (`holy-shape-50429951`), Postgres 17, `aws-eu-central-1` (Frankfurt) |
+| Database | `coachhub` on branch `main`                                                            |
+| Auth     | Managed Better Auth enabled on `main` (schema `neon_auth`)                             |
+
+Connection strings and auth secrets are stored only in `.env.local` and Vercel environment settings, never in the repository.
+
 ## 9. Consequences
 
 - Positive: real identity, team isolation with a database backstop, safe previews, one place for auth and data.
