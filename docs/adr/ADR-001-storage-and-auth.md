@@ -82,6 +82,27 @@ Time box: **3 working days**. Output: a short result note appended to this ADR a
 
 **Exit to fallback** (B, then C) if checks 1-4 or 7-8 fail, or if the managed auth cannot be exited cleanly (no export of users and sessions).
 
+## 5a. Spike result: RLS (checks 7 and part of 8), 2026-11-05
+
+Run on throwaway Neon branch `spike-rls` (Postgres 17, Frankfurt, Free plan). SQL: [ADR-001-spike-rls.sql](ADR-001-spike-rls.sql). Two synthetic teams, one coach each, role `app_runtime` (non-owner, non-`BYPASSRLS`, non-superuser), `FORCE RLS` on all three tables, user id set with `set_config(..., true)` inside a transaction.
+
+| Test                                              | Result                                          |
+| ------------------------------------------------- | ----------------------------------------------- |
+| Coach A reads teams, assessments, memberships     | Sees only team A rows (pass)                    |
+| Coach A updates a team B assessment               | 0 rows affected (pass)                          |
+| Coach A inserts an assessment into team B         | Rejected by RLS (pass)                          |
+| Coach A inserts with `created_by` of another user | Rejected by RLS (pass)                          |
+| No user id set                                    | 0 rows from every table (pass, deny by default) |
+| New transaction after one that set the user id    | Setting is empty again, no carry-over (pass)    |
+| Catalog check: tables without RLS in schema `app` | 0; all three have RLS enabled and forced (pass) |
+
+Not yet proven (the spike stays open):
+
+- Check 8 is **only partly proven**. These tests ran through the Neon MCP, not through the pooled connection from a Vercel function. Concurrent requests over the pooled URL (PgBouncer transaction mode) still need a test to show no identity leaks between requests.
+- The runtime role has `NOLOGIN` here; the real runtime role needs a login and a password kept in `.env.local` and Vercel settings.
+- Policies for update and delete by role (`assistant` read-only?) and the junior-head cross-team read are not covered yet.
+- Checks 1-6, 9 and 10 are not run.
+
 ## 6. Migration from Airtable
 
 Follows CORE_ARCHITECTURE Decision 13:
